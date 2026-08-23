@@ -26,8 +26,8 @@ import {vs as sphereVS} from './sphere-shader';
  */
 @customElement('gdm-live-audio-visuals-3d')
 export class GdmLiveAudioVisuals3D extends LitElement {
-  private inputAnalyser!: Analyser;
-  private outputAnalyser!: Analyser;
+  private inputAnalyser?: Analyser;
+  private outputAnalyser?: Analyser;
   private camera!: THREE.PerspectiveCamera;
   private backdrop!: THREE.Mesh;
   private composer!: EffectComposer;
@@ -35,24 +35,28 @@ export class GdmLiveAudioVisuals3D extends LitElement {
   private prevTime = 0;
   private rotation = new THREE.Vector3(0, 0, 0);
 
-  private _outputNode!: AudioNode;
+  private _outputNode?: AudioNode;
 
   @property()
-  set outputNode(node: AudioNode) {
+  set outputNode(node: AudioNode | undefined) {
     this._outputNode = node;
-    this.outputAnalyser = new Analyser(this._outputNode);
+    if (node) {
+      this.outputAnalyser = new Analyser(node);
+    }
   }
 
   get outputNode() {
     return this._outputNode;
   }
 
-  private _inputNode!: AudioNode;
+  private _inputNode?: AudioNode;
 
   @property()
-  set inputNode(node: AudioNode) {
+  set inputNode(node: AudioNode | undefined) {
     this._inputNode = node;
-    this.inputAnalyser = new Analyser(this._inputNode);
+    if (node) {
+      this.inputAnalyser = new Analyser(node);
+    }
   }
 
   get inputNode() {
@@ -113,12 +117,19 @@ export class GdmLiveAudioVisuals3D extends LitElement {
 
     const geometry = new THREE.IcosahedronGeometry(1, 10);
 
-    new EXRLoader().load('piz_compressed.exr', (texture: THREE.Texture) => {
-      texture.mapping = THREE.EquirectangularReflectionMapping;
-      const exrCubeRenderTarget = pmremGenerator.fromEquirectangular(texture);
-      sphereMaterial.envMap = exrCubeRenderTarget.texture;
-      sphere.visible = true;
-    });
+    new EXRLoader().load(
+      '/piz_compressed.exr',
+      (texture: THREE.Texture) => {
+        texture.mapping = THREE.EquirectangularReflectionMapping;
+        const exrCubeRenderTarget = pmremGenerator.fromEquirectangular(texture);
+        sphereMaterial.envMap = exrCubeRenderTarget.texture;
+        sphere.visible = true;
+      },
+      undefined,
+      () => {
+        sphere.visible = true;
+      },
+    );
 
     const pmremGenerator = new THREE.PMREMGenerator(renderer);
     pmremGenerator.compileEquirectangularShader();
@@ -189,8 +200,16 @@ export class GdmLiveAudioVisuals3D extends LitElement {
   private animation() {
     requestAnimationFrame(() => this.animation());
 
-    this.inputAnalyser.update();
-    this.outputAnalyser.update();
+    if (!this.composer || !this.backdrop || !this.sphere) {
+      return;
+    }
+
+    if (this.inputAnalyser) {
+      this.inputAnalyser.update();
+    }
+    if (this.outputAnalyser) {
+      this.outputAnalyser.update();
+    }
 
     const t = performance.now();
     const dt = (t - this.prevTime) / (1000 / 60);
@@ -201,15 +220,15 @@ export class GdmLiveAudioVisuals3D extends LitElement {
     backdropMaterial.uniforms.rand.value = Math.random() * 10000;
 
     if (sphereMaterial.userData.shader) {
-      this.sphere.scale.setScalar(
-        1 + (0.2 * this.outputAnalyser.data[1]) / 255,
-      );
+      const input = this.inputAnalyser?.data ?? new Uint8Array(3);
+      const output = this.outputAnalyser?.data ?? new Uint8Array(3);
+      this.sphere.scale.setScalar(1 + (0.2 * output[1]) / 255);
 
       const f = 0.001;
-      this.rotation.x += (dt * f * 0.5 * this.outputAnalyser.data[1]) / 255;
-      this.rotation.z += (dt * f * 0.5 * this.inputAnalyser.data[1]) / 255;
-      this.rotation.y += (dt * f * 0.25 * this.inputAnalyser.data[2]) / 255;
-      this.rotation.y += (dt * f * 0.25 * this.outputAnalyser.data[2]) / 255;
+      this.rotation.x += (dt * f * 0.5 * output[1]) / 255;
+      this.rotation.z += (dt * f * 0.5 * input[1]) / 255;
+      this.rotation.y += (dt * f * 0.25 * input[2]) / 255;
+      this.rotation.y += (dt * f * 0.25 * output[2]) / 255;
 
       const euler = new THREE.Euler(
         this.rotation.x,
@@ -223,17 +242,17 @@ export class GdmLiveAudioVisuals3D extends LitElement {
       this.camera.lookAt(this.sphere.position);
 
       sphereMaterial.userData.shader.uniforms.time.value +=
-        (dt * 0.1 * this.outputAnalyser.data[0]) / 255;
+        (dt * 0.1 * output[0]) / 255;
       sphereMaterial.userData.shader.uniforms.inputData.value.set(
-        (1 * this.inputAnalyser.data[0]) / 255,
-        (0.1 * this.inputAnalyser.data[1]) / 255,
-        (10 * this.inputAnalyser.data[2]) / 255,
+        (1 * input[0]) / 255,
+        (0.1 * input[1]) / 255,
+        (10 * input[2]) / 255,
         0,
       );
       sphereMaterial.userData.shader.uniforms.outputData.value.set(
-        (2 * this.outputAnalyser.data[0]) / 255,
-        (0.1 * this.outputAnalyser.data[1]) / 255,
-        (10 * this.outputAnalyser.data[2]) / 255,
+        (2 * output[0]) / 255,
+        (0.1 * output[1]) / 255,
+        (10 * output[2]) / 255,
         0,
       );
     }
