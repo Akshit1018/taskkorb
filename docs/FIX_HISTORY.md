@@ -1,5 +1,12 @@
 # Fix History
 
+## 2026-08-23 leftover reliability
+
+- Symptom: hosted reconnect minted a new token even when a resumption handle existed; fallback model could spend `uses:1`; XFF made the mint cooldown spoofable; “Use my key” was one-way.
+- Root Cause: reconnect always reminted; hosted used the BYO two-model loop; rate limit trusted the first forwarded hop.
+- Fix: reuse a non-expired token when resuming; hosted tries only the primary model; remint 30s before expiry; CF-Connecting-IP / socket for mint limits; hosted return button; apply voice/language after releasing Talk.
+- Verification: 62 unit tests + typecheck. Live mint/resume still UNVERIFIED.
+
 ## 2026-08-23 green-team critic loop
 
 - Symptom: the first reliability pass stored a resumption handle, then threw it away mid-reply; GoAway killed the live socket; hosted connect failures opened the paste-key overlay; the orb never tinted speaking after a normal release.
