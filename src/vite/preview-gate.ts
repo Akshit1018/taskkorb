@@ -39,17 +39,6 @@ function attachGate(middlewares: {
 }, password: string) {
   middlewares.use((req, res, next) => {
     const url = req.url ?? '/';
-    if (
-      url.startsWith('/@') ||
-      url.startsWith('/src/') ||
-      url.startsWith('/node_modules/') ||
-      url.startsWith('/assets/') ||
-      url.startsWith('/pcm-recorder-worklet.js') ||
-      url.startsWith('/favicon')
-    ) {
-      next();
-      return;
-    }
 
     if (req.method === 'POST' && url.startsWith('/__preview')) {
       const chunks: Buffer[] = [];
@@ -59,7 +48,10 @@ function attachGate(middlewares: {
         const submitted = new URLSearchParams(body).get('password') ?? '';
         if (submitted === password) {
           res.statusCode = 302;
-          res.setHeader('Set-Cookie', `${COOKIE}=${encodeURIComponent(password)}; Path=/; SameSite=Lax`);
+          res.setHeader(
+            'Set-Cookie',
+            `${COOKIE}=${encodeURIComponent(password)}; Path=/; SameSite=Lax; HttpOnly`,
+          );
           res.setHeader('Location', '/');
           res.end();
           return;

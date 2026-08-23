@@ -1,5 +1,6 @@
 import path from 'path';
 import {defineConfig} from 'vite';
+import {liveTokenPlugin} from './src/vite/live-token';
 import {previewGatePlugin} from './src/vite/preview-gate';
 
 export default defineConfig({
@@ -13,7 +14,7 @@ export default defineConfig({
     host: '0.0.0.0',
     allowedHosts: true,
   },
-  plugins: [previewGatePlugin()],
+  plugins: [previewGatePlugin(), liveTokenPlugin()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, '.'),

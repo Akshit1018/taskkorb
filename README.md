@@ -11,11 +11,13 @@ This repository is not a career, resume, interview, or job-tracking product. Tho
 ## Run locally
 
 1. `npm install`
-2. Copy `.env.example` to `.env.local` and set `GEMINI_API_KEY`, or paste a key in the UI
-3. `npm run dev`
-4. Open http://localhost:3000
+2. Copy `.env.example` to `.env.local`
+3. Optional: set server-only `GEMINI_API_KEY` so the app mints a short-lived Live token and testers do not paste a key
+4. Optional: set `PREVIEW_PASSWORD` to lock public preview URLs
+5. `npm run dev`
+6. Open http://localhost:3000
 
-The UI key stays in the current browser tab. That is for testing only.
+Without a server key, paste a Gemini key in the UI. That value stays in tab memory only and is never written to disk or the JS bundle. This is still test-only.
 
 ## Checks
 

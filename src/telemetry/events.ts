@@ -17,13 +17,18 @@ export interface ProductEvent {
   detail?: Record<string, string | number | boolean>;
 }
 
+const SECRET_VALUE = /AIza[0-9A-Za-z_-]{20,}|sk-[A-Za-z0-9]{20,}|auth_tokens\//;
+
 function assertNoSecrets(detail: ProductEvent['detail']): void {
   if (!detail) {
     return;
   }
-  for (const key of Object.keys(detail)) {
+  for (const [key, value] of Object.entries(detail)) {
     if (/key|token|secret|password/i.test(key)) {
       throw new Error(`Refusing to record secret-like field: ${key}`);
+    }
+    if (typeof value === 'string' && SECRET_VALUE.test(value)) {
+      throw new Error('Refusing to record a secret-like value');
     }
   }
 }

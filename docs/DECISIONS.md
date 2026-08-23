@@ -10,8 +10,8 @@
 ## D002 — Client API key is test-only
 
 - Alternatives: block all use until a backend exists; hide the risk
-- Choice: allow tab-local key entry, label it as testing, never log the key
-- Reversal: when an ephemeral-token backend exists
+- Choice: prefer a server-minted ephemeral Live token when `GEMINI_API_KEY` is present; otherwise allow tab-local key entry
+- Reversal: replace the Vite issuer with an authenticated production host
 
 ## D003 — Session state is a reducer
 

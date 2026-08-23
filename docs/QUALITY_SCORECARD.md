@@ -10,10 +10,10 @@ Scored against the current acceptance bar: a trustworthy voice-orb loop, not a f
 | Logic Correctness | 8/10 | Session reducer + PCM tests |
 | Architecture | 7/10 | Domain folders exist; UI still owns the Live client |
 | Frontend Quality | 7/10 | Lazy audio, worklet capture, guarded visual |
-| Backend Quality | 2/10 | No backend. Honest. |
-| API Quality | 6/10 | Direct Gemini Live client, no local contract yet |
-| Data Design | 6/10 | Session snapshot is explicit; no persistence |
-| Security | 4/10 | Key still in the browser; secrets are not logged |
+| Backend Quality | 4/10 | Vite token issuer + preview gate. Not a production host. |
+| API Quality | 6/10 | Local `/api/live-session` contract; Gemini Live still direct |
+| Data Design | 6/10 | Session snapshot is explicit; transcripts are local-only |
+| Security | 6/10 | Long-lived key can stay on the server; stolen tokens still work briefly |
 | Performance | 6/10 | Worklet path is better; no measured budget |
 | Accessibility | 7/10 | Labels, titles, live status |
 | Testing | 7/10 | Unit tests for PCM, session, telemetry |

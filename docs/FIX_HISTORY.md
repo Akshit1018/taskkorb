@@ -1,5 +1,13 @@
 # Fix History
 
+## 2026-08-23 hosted token + remaining P0 leaks
+
+- Symptom: public preview still required a long-lived Gemini key in the tab; preview gate leaked `/src` without a cookie; form accepted junk keys and double-submit.
+- Root Cause: P0/P1 pass removed storage/bundle leaks but left the credential boundary and gate holes.
+- Fix: Vite `/api/live-session` mints a v1alpha ephemeral token when `GEMINI_API_KEY` is server-side; preview gate requires the cookie for all app files; key validation; connect lock; confirm clear; telemetry rejects secret-like values.
+- Verification: unit tests for validation/token helpers/issuer client. Live mint against Google is UNVERIFIED (no key in this environment).
+- Related: durable hosting and authenticated minting remain open.
+
 ## 2026-08-23 red-team P0/P1
 
 - Symptom: Browser Gemini key leaked via sessionStorage and Vite `define`; bad keys trapped users; live loop had races and unlabeled controls.

@@ -4,10 +4,10 @@
 
 - Provider: Google Gemini API
 - Use: Live Audio session
-- Status: **EXTERNAL_DEPENDENCY_REQUIRED** for real conversation
-- Current integration: user-pasted browser key, **test-only**
-- Production interface: ephemeral token minted by a backend
-- Fallback: app explains that a key is required and does not fake a conversation
+- Status: **EXTERNAL_DEPENDENCY_REQUIRED** for a real conversation
+- Server integration: optional Vite issuer at `/api/live-session` using `authTokens.create` (v1alpha). **IMPLEMENTED**, mint against Google is **UNVERIFIED** in this environment
+- Client fallback: user-pasted browser key, memory-only, **test-only**
+- Production still needs a host that authenticates users before minting tokens
 
 ## Cloudflare Quick Tunnel
 

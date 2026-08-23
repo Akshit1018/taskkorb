@@ -11,4 +11,10 @@ describe('telemetry', () => {
   it('refuses secret-like fields', () => {
     expect(() => track('session_error', {apiKey: 'x'})).toThrow(/secret-like/);
   });
+
+  it('refuses secret-like values even under ordinary keys', () => {
+    expect(() =>
+      track('session_error', {reason: 'AIzaSyDummyTestKeyValue12XXXX'}),
+    ).toThrow(/secret-like value/);
+  });
 });

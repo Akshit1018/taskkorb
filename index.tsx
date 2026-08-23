@@ -7,6 +7,8 @@
 import {GoogleGenAI, LiveServerMessage, Modality, Session} from '@google/genai';
 import {LitElement, css, html} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
+import {MAX_API_KEY_LENGTH, validateApiKey} from './src/auth/api-key';
+import {fetchHostedCredential} from './src/auth/live-session';
 import {isAudible} from './src/audio/level';
 import {createBlob, decode, decodeAudioData} from './src/audio/pcm';
 import {humanizeError} from './src/errors/humanize';
@@ -45,6 +47,8 @@ export class GdmLiveAudio extends LitElement {
   @state() apiKey = '';
   @state() keyDraft = '';
   @state() editingKey = true;
+  @state() authMode: 'unknown' | 'hosted' | 'byo' = 'unknown';
+  @state() connectInFlight = false;
   @state() sessionState: SessionSnapshot = INITIAL_SESSION;
   @state() userTranscript = '';
   @state() orbTranscript = '';
@@ -66,6 +70,7 @@ export class GdmLiveAudio extends LitElement {
   private listenCancelRequested = false;
   private listenStartedAt = 0;
   private listenCapTimer = 0;
+  private useAlphaLiveApi = false;
 
   static styles = css`
     :host {
@@ -242,6 +247,7 @@ export class GdmLiveAudio extends LitElement {
     const stored = readStoredTranscript();
     this.userTranscript = stored.user;
     this.orbTranscript = stored.orb;
+    void this.bootstrapAuth();
   }
 
   disconnectedCallback() {
@@ -252,12 +258,42 @@ export class GdmLiveAudio extends LitElement {
   }
 
   private get showKeyGate(): boolean {
+    if (this.authMode === 'unknown') {
+      return true;
+    }
+    if (this.authMode === 'hosted' && !this.editingKey) {
+      return false;
+    }
     return (
       this.editingKey ||
       !this.apiKey ||
       this.sessionState.phase === 'locked' ||
       this.sessionState.errorKind === 'key'
     );
+  }
+
+  private async bootstrapAuth() {
+    const hosted = await fetchHostedCredential();
+    if (hosted.mode === 'hosted') {
+      this.authMode = 'hosted';
+      this.apiKey = hosted.token;
+      this.editingKey = false;
+      this.useAlphaLiveApi = true;
+      this.applyEvent({type: 'KEY_SUBMITTED'});
+      await this.initClient();
+      return;
+    }
+    if (hosted.mode === 'error') {
+      this.authMode = 'byo';
+      this.editingKey = true;
+      this.applyEvent({
+        type: 'ERROR',
+        kind: 'connect',
+        message: hosted.message,
+      });
+      return;
+    }
+    this.authMode = 'byo';
   }
 
   private applyEvent(event: Parameters<typeof reduceSession>[1]) {
@@ -299,6 +335,7 @@ export class GdmLiveAudio extends LitElement {
     this.nextStartTime = this.outputAudioContext?.currentTime ?? 0;
     this.client = new GoogleGenAI({
       apiKey: this.apiKey,
+      ...(this.useAlphaLiveApi ? {httpOptions: {apiVersion: 'v1alpha'}} : {}),
     });
     await this.initSession();
   }
@@ -586,27 +623,56 @@ export class GdmLiveAudio extends LitElement {
     this.stopRecording();
     this.editingKey = false;
     this.applyEvent({type: 'RETRY'});
+    if (this.authMode === 'hosted') {
+      const hosted = await fetchHostedCredential();
+      if (hosted.mode !== 'hosted') {
+        this.applyEvent({
+          type: 'ERROR',
+          kind: 'connect',
+          message:
+            hosted.mode === 'error'
+              ? hosted.message
+              : 'Hosted session expired. Reconnect or paste a Gemini key.',
+        });
+        return;
+      }
+      this.apiKey = hosted.token;
+      this.useAlphaLiveApi = true;
+      await this.initClient();
+      return;
+    }
     await this.initSession();
   }
 
   private async saveApiKey(event: Event) {
     event.preventDefault();
-    const nextKey = this.keyDraft.trim();
-    if (nextKey.length < 20) {
+    if (this.connectInFlight) {
+      return;
+    }
+
+    const validated = validateApiKey(this.keyDraft);
+    if (!validated.ok) {
       this.applyEvent({
         type: 'ERROR',
         kind: 'key',
-        message: 'That does not look like a Gemini API key.',
+        message: validated.message,
       });
       this.editingKey = true;
       return;
     }
 
-    this.apiKey = nextKey;
+    this.connectInFlight = true;
+    this.apiKey = validated.key;
     this.keyDraft = '';
     this.editingKey = false;
+    this.authMode = 'byo';
+    this.useAlphaLiveApi = false;
     this.applyEvent({type: 'KEY_SUBMITTED'});
-    await this.initClient();
+    try {
+      await this.initClient();
+    } finally {
+      this.connectInFlight = false;
+    }
   }
 
   private clearKey() {
@@ -638,6 +704,9 @@ export class GdmLiveAudio extends LitElement {
   }
 
   private clearChat() {
+    if (!window.confirm('Clear this conversation from this browser?')) {
+      return;
+    }
     this.userTranscript = '';
     this.orbTranscript = '';
     clearStoredTranscript();
@@ -670,27 +739,38 @@ export class GdmLiveAudio extends LitElement {
                 <div class="key-card">
                   <h1>${PRODUCT_NAME}</h1>
                   <p>${PRODUCT_TAGLINE}</p>
-                  <p>
-                    Local testing only. The key stays in this tab’s memory and
-                    is never written to disk. Audio is sent to Google Gemini
-                    while you hold Talk.
-                  </p>
-                  ${error
-                    ? html`<p class="error" role="alert">${error}</p>`
-                    : ''}
-                  <input
-                    type="password"
-                    autocomplete="off"
-                    placeholder="Gemini API key"
-                    aria-label="Gemini API key"
-                    .value=${this.keyDraft}
-                    @input=${this.updateKeyDraft} />
-                  <button type="submit">Connect</button>
-                  ${this.apiKey
-                    ? html`<button type="button" @click=${() => { this.editingKey = false; }}>
-                        Cancel
-                      </button>`
-                    : ''}
+                  ${this.authMode === 'unknown'
+                    ? html`<p>Opening session…</p>`
+                    : html`
+                        <p>
+                          Local testing only. The key stays in this tab’s memory
+                          and is never written to disk. Audio is sent to Google
+                          Gemini while you hold Talk.
+                        </p>
+                        ${error
+                          ? html`<p class="error" role="alert">${error}</p>`
+                          : ''}
+                        <input
+                          type="password"
+                          autocomplete="off"
+                          maxlength=${MAX_API_KEY_LENGTH}
+                          placeholder="Gemini API key"
+                          aria-label="Gemini API key"
+                          .value=${this.keyDraft}
+                          @input=${this.updateKeyDraft} />
+                        <button type="submit" ?disabled=${this.connectInFlight}>
+                          ${this.connectInFlight ? 'Connecting…' : 'Connect'}
+                        </button>
+                        ${this.apiKey
+                          ? html`<button
+                              type="button"
+                              @click=${() => {
+                                this.editingKey = false;
+                              }}>
+                              Cancel
+                            </button>`
+                          : ''}
+                      `}
                 </div>
               </form>
             `

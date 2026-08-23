@@ -76,7 +76,9 @@ Status after 2026-08-23 remediation (see FIX_HISTORY):
 | RT-037 RT-083 | PARTIALLY RESOLVED — silence gate + 3 min talk cap + hold-to-talk |
 | RT-050 | PARTIALLY RESOLVED — transcript cap/export/local persist, no account history |
 | RT-091 RT-092 RT-093 | PARTIALLY RESOLVED — CSP, privacy copy, optional PREVIEW_PASSWORD |
-| RT-090 RT-002 RT-040 | PARTIALLY RESOLVED — worst leaks closed; ephemeral token backend still required |
+| RT-090 RT-002 RT-040 | PARTIALLY RESOLVED — Vite can mint ephemeral tokens; BYO key remains the fallback; no user-auth in front of mint |
+| RT-094 | RESOLVED — telemetry rejects secret-like values |
+| RT-093 | PARTIALLY RESOLVED — preview cookie now required for `/src` and app files |
 | RT-001 RT-005 RT-080 | DISCOVERED — market/product, not a code patch |
 
 ---

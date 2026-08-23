@@ -7,7 +7,7 @@
 - SEVERITY: CRITICAL
 - CONFIDENCE: CONFIRMED
 - TEST THAT SHOULD EXIST: build with a dummy env key and fail if the string appears in `dist/`.
-- STATUS: PARTIALLY RESOLVED (2026-08-23) — key is no longer stored or bundled. Browser still must hold a user-pasted key to open Gemini Live until a token issuer exists.
+- STATUS: PARTIALLY RESOLVED (2026-08-23) — no storage/bundle leak; hosted mode can mint a short-lived token. BYO key still exists as fallback. Mint against Google is UNVERIFIED here.
 
 ## RT-091 — No CSP, no Trusted Types, no auth
 - AREA: Security

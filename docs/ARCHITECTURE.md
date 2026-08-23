@@ -2,14 +2,15 @@
 
 ## Current shape
 
-This is a **browser-only Vite app**.
+This is a **Vite app** with a thin local middleware layer.
 
 - UI: Lit custom elements
 - Voice: `@google/genai` Live API
-- Visual: Three.js orb + bloom
+- Visual: Three.js orb
 - Domain: session reducer, PCM converters, product identity, telemetry
+- Local backend: preview password gate + optional ephemeral Live token issuer
 
-There is no server, database, queue, or auth provider.
+There is no database, queue, or user-account provider.
 
 ## Intended boundaries
 
@@ -17,25 +18,29 @@ There is no server, database, queue, or auth provider.
 src/product     product identity and model/voice constants
 src/session     conversation lifecycle
 src/audio       PCM encode/decode
+src/auth        key validation + hosted token client
+src/vite        preview gate + token issuer
 src/telemetry   structured events
 index.tsx       live session UI and capture/playback
 visual-3d.ts    renderer only
 ```
 
-`visual.ts` is leftover 2D visual code and is not mounted.
-
 ## Why this stack stays
 
 Lit + Vite + Three already implement the orb. Replacing them would be prestige, not value. The missing work is reliability, state, and honesty, not a new framework.
 
-## Future backend boundary
+## Credential boundary
 
-Production must not ship a long-lived Gemini key in the browser.
+```
+optional GEMINI_API_KEY (server env)
+        ↓
+GET /api/live-session
+        ↓
+ephemeral auth token (browser memory)
+        ↓
+Gemini Live WebSocket (v1alpha)
+```
 
-Required later:
-
-- ephemeral token issuer
-- rate limits
-- session logging without raw audio unless the user consents
+If the server key is absent, the UI falls back to a pasted key.
 
 See `EXTERNAL_DEPENDENCIES.md`.
