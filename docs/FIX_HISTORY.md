@@ -1,5 +1,12 @@
 # Fix History
 
+## 2026-08-23 remaining session work
+
+- Symptom: leftover critic/product gaps were still visible: doubled transcripts, speaking tint that never ended, hold-only Talk on mobile, English chrome for Hindi users, issuer 404 noise, no in-product privacy copy.
+- Root Cause: fragments were blindly concatenated; playback end did not re-enter the reducer; Talk had one gesture; UI strings were hardcoded English; missing issuer used 404.
+- Fix: cumulative transcript merge; SPEAKING_DONE; tap-to-talk; Hindi UI + `lang`; issuer 200 `{available:false}`; mint-log prune; privacy copy; reduce-motion preference.
+- Verification: 67 unit tests + typecheck + browser Hindi/tap/More. Live Gemini still UNVERIFIED. Host and user-auth still BLOCKED.
+
 ## 2026-08-23 leftover reliability
 
 - Symptom: hosted reconnect minted a new token even when a resumption handle existed; fallback model could spend `uses:1`; XFF made the mint cooldown spoofable; “Use my key” was one-way.

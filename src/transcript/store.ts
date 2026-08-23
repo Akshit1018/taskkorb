@@ -71,6 +71,19 @@ export function appendTranscript(
   return clipTranscript(next, cap);
 }
 
+export function mergeTranscriptFragment(previous: string, incoming: string): string {
+  if (!previous) {
+    return incoming;
+  }
+  if (incoming.startsWith(previous) || incoming.includes(previous)) {
+    return incoming.length >= previous.length ? incoming : previous;
+  }
+  if (previous.startsWith(incoming)) {
+    return previous;
+  }
+  return `${previous} ${incoming}`.replace(/\s+/g, ' ').trim();
+}
+
 export function appendTurn(
   state: TranscriptState,
   side: TranscriptSide,
@@ -88,7 +101,7 @@ export function appendTurn(
   if (last && last.side === side) {
     turns[turns.length - 1] = {
       ...last,
-      text: `${last.text} ${text}`.replace(/\s+/g, ' ').trim(),
+      text: mergeTranscriptFragment(last.text, text),
       at,
     };
   } else {

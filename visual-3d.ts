@@ -32,6 +32,7 @@ export class GdmLiveAudioVisuals3D extends LitElement {
   private rotation = new THREE.Vector3(0, 0, 0);
 
   @property() phase: SessionPhase = 'locked';
+  @property({type: Boolean}) reducedMotion = false;
 
   private _outputNode?: AudioNode;
 
@@ -278,8 +279,16 @@ export class GdmLiveAudioVisuals3D extends LitElement {
 
   protected firstUpdated() {
     this.canvas = this.shadowRoot!.querySelector('canvas') as HTMLCanvasElement;
-    this.reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    this.reduceMotion =
+      this.reducedMotion ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.init();
+  }
+
+  protected updated() {
+    this.reduceMotion =
+      this.reducedMotion ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   }
 
   protected render() {

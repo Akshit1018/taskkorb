@@ -7,5 +7,5 @@
 - Live preview models can be retired by Google without notice.
 - Session resumption is implemented against the SDK fields; a real 10-minute Live drop has not been proven here.
 - AudioContext still depends on a user gesture to leave `suspended`.
-- Transcripts are incremental fragments and can look incomplete.
+- Transcripts merge cumulative snapshots; overlapping Google shapes can still look incomplete.
 - There is no automated browser E2E of the live microphone path in this environment.

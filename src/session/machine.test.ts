@@ -84,6 +84,17 @@ describe('session machine', () => {
     expect(reduceSession(failed, {type: 'LISTEN_STOPPED'}).phase).toBe('error');
   });
 
+  it('returns to ready when playback ends and Talk is not held', () => {
+    const connecting = reduceSession(INITIAL_SESSION, {type: 'KEY_SUBMITTED'});
+    const ready = reduceSession(connecting, {type: 'OPENED'});
+    const speaking = reduceSession(ready, {type: 'AUDIO_OUT'});
+    const done = reduceSession(speaking, {type: 'SPEAKING_DONE', holding: false});
+    const stillHolding = reduceSession(speaking, {type: 'SPEAKING_DONE', holding: true});
+
+    expect(done.phase).toBe('ready');
+    expect(stillHolding.phase).toBe('listening');
+  });
+
   it('tints speaking when the orb answers after Talk is released', () => {
     const connecting = reduceSession(INITIAL_SESSION, {type: 'KEY_SUBMITTED'});
     const ready = reduceSession(connecting, {type: 'OPENED'});

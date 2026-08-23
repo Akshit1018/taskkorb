@@ -8,16 +8,23 @@ export type LiveVoice = (typeof LIVE_VOICES)[number];
 export const REPLY_LANGUAGES = ['auto', 'en', 'hi'] as const;
 export type ReplyLanguage = (typeof REPLY_LANGUAGES)[number];
 
+export const TALK_MODES = ['hold', 'tap'] as const;
+export type TalkMode = (typeof TALK_MODES)[number];
+
 export interface UserPrefs {
   voice: LiveVoice;
   language: ReplyLanguage;
   volume: number;
+  talkMode: TalkMode;
+  reduceMotion: boolean;
 }
 
 export const DEFAULT_PREFS: UserPrefs = {
   voice: LIVE_VOICE as LiveVoice,
   language: 'auto',
   volume: 1,
+  talkMode: 'hold',
+  reduceMotion: false,
 };
 
 function isVoice(value: unknown): value is LiveVoice {
@@ -26,6 +33,10 @@ function isVoice(value: unknown): value is LiveVoice {
 
 function isLanguage(value: unknown): value is ReplyLanguage {
   return typeof value === 'string' && (REPLY_LANGUAGES as readonly string[]).includes(value);
+}
+
+function isTalkMode(value: unknown): value is TalkMode {
+  return typeof value === 'string' && (TALK_MODES as readonly string[]).includes(value);
 }
 
 export function clampVolume(value: number): number {
@@ -44,6 +55,9 @@ export function normalizePrefs(raw: unknown): UserPrefs {
     voice: isVoice(value.voice) ? value.voice : DEFAULT_PREFS.voice,
     language: isLanguage(value.language) ? value.language : DEFAULT_PREFS.language,
     volume: clampVolume(typeof value.volume === 'number' ? value.volume : DEFAULT_PREFS.volume),
+    talkMode: isTalkMode(value.talkMode) ? value.talkMode : DEFAULT_PREFS.talkMode,
+    reduceMotion:
+      typeof value.reduceMotion === 'boolean' ? value.reduceMotion : DEFAULT_PREFS.reduceMotion,
   };
 }
 

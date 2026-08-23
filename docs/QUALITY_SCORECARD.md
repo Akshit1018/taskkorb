@@ -5,8 +5,8 @@ Scored against the current acceptance bar: a trustworthy voice-orb loop, not a f
 | Dimension | Score | Evidence |
 | --- | --- | --- |
 | Product Value | 7/10 | Core loop is now the product, not an untitled demo |
-| User Experience | 7/10 | Talk shows remaining time; Space works after ready; More dismisses |
-| UI Quality | 7/10 | Talk-first + remaining time + reduced motion |
+| User Experience | 8/10 | Tap or hold Talk; Hindi chrome; speaking ends when audio ends |
+| UI Quality | 8/10 | Talk-first + remaining time + localized More sheet |
 | Logic Correctness | 8/10 | Session reducer, reconnect policy, mint retry tests |
 | Architecture | 7/10 | Reconnect/listen/mint extracted; UI still owns the Live client |
 | Frontend Quality | 7/10 | Lazy audio, worklet capture, guarded visual |

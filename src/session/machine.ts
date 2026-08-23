@@ -20,6 +20,7 @@ export type SessionEvent =
   | {type: 'INTERRUPTED'; holding?: boolean}
   | {type: 'LISTEN_STOPPED'}
   | {type: 'LISTEN_CAPPED'}
+  | {type: 'SPEAKING_DONE'; holding?: boolean}
   | {type: 'ERROR'; message: string; kind: ErrorKind}
   | {type: 'CLOSED'; reason: string; autoRetry?: boolean}
   | {type: 'RESET'}
@@ -136,6 +137,22 @@ export function reduceSession(
       }
       if (state.phase === 'error') {
         return state;
+      }
+      return {
+        phase: 'ready',
+        status: 'Paused. Hold Talk to speak again.',
+        error: '',
+      };
+    case 'SPEAKING_DONE':
+      if (state.phase !== 'speaking') {
+        return state;
+      }
+      if (event.holding) {
+        return {
+          phase: 'listening',
+          status: 'Listening… Release Talk to pause.',
+          error: '',
+        };
       }
       return {
         phase: 'ready',

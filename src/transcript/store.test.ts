@@ -21,6 +21,14 @@ describe('transcript store', () => {
     expect(second.turns[0].text).toBe('hold talk');
   });
 
+  it('replaces a cumulative snapshot instead of doubling it', () => {
+    const first = appendTurn(EMPTY_TRANSCRIPT, 'user', 'hello');
+    const second = appendTurn(first, 'user', 'hello world');
+    const stale = appendTurn(second, 'user', 'hello');
+    expect(second.turns[0].text).toBe('hello world');
+    expect(stale.turns[0].text).toBe('hello world');
+  });
+
   it('starts a new turn when the speaker changes', () => {
     const spoken = appendTurn(
       appendTurn(EMPTY_TRANSCRIPT, 'user', 'hello'),

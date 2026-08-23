@@ -7,6 +7,8 @@ describe('user prefs', () => {
       voice: 'Orus',
       language: 'auto',
       volume: 1,
+      talkMode: 'hold',
+      reduceMotion: false,
     });
     expect(clampVolume(-2)).toBe(0);
   });

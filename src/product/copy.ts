@@ -1,0 +1,140 @@
+export type UiLang = 'en' | 'hi';
+
+export function uiLanguage(
+  prefs: {language: 'auto' | 'en' | 'hi'},
+  navigatorLanguage = '',
+): UiLang {
+  if (prefs.language === 'hi') {
+    return 'hi';
+  }
+  if (prefs.language === 'en') {
+    return 'en';
+  }
+  return navigatorLanguage.toLowerCase().startsWith('hi') ? 'hi' : 'en';
+}
+
+export function talkHint(talkMode: 'hold' | 'tap', lang: UiLang): string {
+  if (talkMode === 'tap') {
+    return lang === 'hi' ? 'बात पर टैप करें और बोलें।' : 'Tap Talk and speak.';
+  }
+  return lang === 'hi' ? 'बात दबाकर रखें और बोलें।' : 'Hold Talk and speak.';
+}
+
+const STATUS_HI: Record<string, string> = {
+  'Add a Gemini API key to begin.': 'शुरू करने के लिए Gemini कुंजी डालें।',
+  'Connecting to the orb…': 'ऑर्ब से जुड़ रहे हैं…',
+  'Connected. Hold Talk and speak.': 'जुड़ गया। बात दबाकर रखें और बोलें।',
+  'Requesting microphone access…': 'माइक्रोफ़ोन की अनुमति माँग रहे हैं…',
+  'Listening… Release Talk to pause.': 'सुन रहे हैं… रोकने के लिए बात छोड़ें।',
+  'The orb is speaking…': 'ऑर्ब बोल रहा है…',
+  'Interrupted. Hold Talk to continue.': 'रुक गया। जारी रखने के लिए बात दबाएँ।',
+  'Interrupted. Keep talking.': 'रुक गया। बोलते रहें।',
+  'Paused. Hold Talk to speak again.': 'रुका। फिर बोलने के लिए बात दबाएँ।',
+  'Talk limit reached. Hold Talk to start again.': 'समय सीमा पूरी। फिर शुरू करने के लिए बात दबाएँ।',
+  'Something went wrong.': 'कुछ गलत हो गया।',
+  'Connection dropped. Reconnecting…': 'कनेक्शन टूटा। फिर जोड़ रहे हैं…',
+  'Disconnected. Tap Reconnect.': 'कट गया। फिर जोड़ें दबाएँ।',
+  'Reconnecting…': 'फिर जोड़ रहे हैं…',
+};
+
+function applyTalkMode(status: string, talkMode: 'hold' | 'tap'): string {
+  if (talkMode !== 'tap') {
+    return status;
+  }
+  return status
+    .replaceAll('Hold Talk', 'Tap Talk')
+    .replaceAll('Release Talk', 'Tap Talk again')
+    .replaceAll('दबाकर रखें', 'टैप करें')
+    .replaceAll('बात छोड़ें', 'फिर टैप करें');
+}
+
+export function localizeStatus(
+  status: string,
+  lang: UiLang,
+  talkMode: 'hold' | 'tap' = 'hold',
+): string {
+  const source = lang === 'hi' ? (STATUS_HI[status] ?? status) : status;
+  return applyTalkMode(source, talkMode);
+}
+
+export function copy(lang: UiLang) {
+  if (lang === 'hi') {
+    return {
+      name: 'Taskkorb',
+      tagline: 'बोलो, और ऑर्ब जवाब दे।',
+      pasteKey:
+        'केवल स्थानीय जाँच के लिए Gemini कुंजी डालें। यह इसी टैब की मेमोरी में रहती है। बेहतर है कि सर्वर कुंजी हो, ताकि जाँच करने वालों को कुंजी न डालनी पड़े।',
+      opening: 'सेशन खुल रहा है…',
+      connect: 'जोड़ें',
+      connecting: 'जुड़ रहे हैं…',
+      back: 'वापस',
+      keyLabel: 'Gemini API कुंजी',
+      talk: 'बात',
+      more: 'और',
+      voice: 'आवाज़',
+      replyLanguage: 'जवाब की भाषा',
+      matchSpeech: 'जैसी मैं बोलूँ',
+      english: 'अंग्रेज़ी',
+      hindi: 'हिन्दी',
+      volume: 'आवाज़ स्तर',
+      changeKey: 'कुंजी बदलें',
+      useMyKey: 'मेरी कुंजी',
+      useHosted: 'होस्टेड सेशन',
+      reconnect: 'फिर जोड़ें',
+      export: 'निर्यात',
+      clear: 'साफ़',
+      undoClear: 'साफ़ वापस लें',
+      talkMode: 'बात करने का तरीका',
+      holdMode: 'दबाकर रखें',
+      tapMode: 'टैप',
+      reduceMotion: 'कम हलचल',
+      privacyTitle: 'हम क्या भेजते हैं',
+      privacy:
+        'ऑडियो तभी इस डिवाइस से जाता है जब बात चालू हो। ट्रांस्क्रिप्ट इसी ब्राउज़र में रहती है। होस्टेड पूर्वावलोकन छोटी अवधि का टोकन इस्तेमाल करता है, लंबी कुंजी नहीं।',
+      empty: 'बात दबाकर बोलें। छोड़ने पर रुक जाएगा।',
+      clipped: 'डिवाइस हल्की रखने के लिए पुरानी पंक्तियाँ हटाई गईं।',
+      you: 'आप',
+      orb: 'ऑर्ब',
+      confirmClear: 'इस ब्राउज़र से बातचीत साफ़ करें?',
+    };
+  }
+
+  return {
+    name: 'Taskkorb',
+    tagline: 'Speak, and the orb answers.',
+    pasteKey:
+      'Paste a Gemini key only for local testing. It stays in this tab’s memory. Prefer a server key so testers never paste one.',
+    opening: 'Opening session…',
+    connect: 'Connect',
+    connecting: 'Connecting…',
+    back: 'Back',
+    keyLabel: 'Gemini API key',
+    talk: 'Talk',
+    more: 'More',
+    voice: 'Voice',
+    replyLanguage: 'Reply language',
+    matchSpeech: 'Match what I speak',
+    english: 'English',
+    hindi: 'Hindi',
+    volume: 'Volume',
+    changeKey: 'Change key',
+    useMyKey: 'Use my key',
+    useHosted: 'Use hosted session',
+    reconnect: 'Reconnect',
+    export: 'Export',
+    clear: 'Clear',
+    undoClear: 'Undo clear',
+    talkMode: 'Talk mode',
+    holdMode: 'Hold',
+    tapMode: 'Tap',
+    reduceMotion: 'Reduce motion',
+    privacyTitle: 'What we send',
+    privacy:
+      'Audio leaves this device only while Talk is on. Transcripts stay in this browser. Hosted preview uses a short-lived token, not your long-lived key.',
+    empty: 'Hold Talk and speak. Release to pause.',
+    clipped: 'Older lines were dropped to keep this device light.',
+    you: 'You',
+    orb: 'Orb',
+    confirmClear: 'Clear this conversation from this browser?',
+  };
+}

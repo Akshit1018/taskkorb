@@ -11,6 +11,26 @@ export function checkMintRate(
   return {allowed: true};
 }
 
+export function pruneMintLog(
+  lastMintByIp: Map<string, number>,
+  now: number,
+  maxEntries = 256,
+  ttlMs = 60_000,
+): void {
+  for (const [ip, at] of lastMintByIp) {
+    if (now - at > ttlMs) {
+      lastMintByIp.delete(ip);
+    }
+  }
+  if (lastMintByIp.size <= maxEntries) {
+    return;
+  }
+  const oldest = [...lastMintByIp.entries()].sort((left, right) => left[1] - right[1]);
+  for (const [ip] of oldest.slice(0, lastMintByIp.size - maxEntries)) {
+    lastMintByIp.delete(ip);
+  }
+}
+
 export function parseRetryAfterMs(
   header: string | null,
   fallbackMs = MIN_MINT_INTERVAL_MS,

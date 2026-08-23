@@ -24,14 +24,15 @@ import {
   LIVE_MODEL,
   LIVE_MODEL_FALLBACK,
   OUTPUT_SAMPLE_RATE,
-  PRODUCT_NAME,
-  PRODUCT_TAGLINE,
   buildSystemInstruction,
 } from './src/product/identity';
+import {copy, localizeStatus, talkHint, uiLanguage} from './src/product/copy';
 import {
   DEFAULT_PREFS,
   LIVE_VOICES,
   REPLY_LANGUAGES,
+  TALK_MODES,
+  TalkMode,
   UserPrefs,
   clampVolume,
   languageInstruction,
@@ -368,6 +369,7 @@ export class GdmLiveAudio extends LitElement {
     if (this.sessionState.phase !== 'ready') {
       this.lastFocusedReady = false;
     }
+    document.documentElement.lang = uiLanguage(this.prefs, navigator.language);
   }
 
   private get showKeyGate(): boolean {
@@ -642,6 +644,12 @@ export class GdmLiveAudio extends LitElement {
     source.connect(this.outputNode);
     source.addEventListener('ended', () => {
       this.sources.delete(source);
+      if (this.sources.size === 0) {
+        this.applyEvent({
+          type: 'SPEAKING_DONE',
+          holding: Boolean(this.mediaStream),
+        });
+      }
     });
     try {
       source.start(this.nextStartTime);
@@ -977,7 +985,8 @@ export class GdmLiveAudio extends LitElement {
     if (!this.transcript.turns.length) {
       return;
     }
-    if (!window.confirm('Clear this conversation from this browser?')) {
+    const lang = uiLanguage(this.prefs, navigator.language);
+    if (!window.confirm(copy(lang).confirmClear)) {
       return;
     }
     this.undoTranscript = this.transcript;
@@ -1052,8 +1061,22 @@ export class GdmLiveAudio extends LitElement {
     await this.initSession();
   }
 
+  private toggleTalk(event?: Event) {
+    const listening =
+      this.sessionState.phase === 'listening' || this.sessionState.phase === 'speaking';
+    if (listening) {
+      this.stopRecording();
+      return;
+    }
+    void this.startRecording(event);
+  }
+
   private onTalkPointerDown(event: PointerEvent) {
     (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+    if (this.prefs.talkMode === 'tap') {
+      this.toggleTalk(event);
+      return;
+    }
     void this.startRecording(event);
   }
 
@@ -1061,6 +1084,9 @@ export class GdmLiveAudio extends LitElement {
     const target = event.currentTarget as HTMLElement;
     if (target.hasPointerCapture(event.pointerId)) {
       target.releasePointerCapture(event.pointerId);
+    }
+    if (this.prefs.talkMode === 'tap') {
+      return;
     }
     this.stopRecording();
   }
@@ -1079,18 +1105,42 @@ export class GdmLiveAudio extends LitElement {
     this.updatePrefs({volume: Number((event.target as HTMLInputElement).value)});
   }
 
+  private onTalkModeInput(event: Event) {
+    this.updatePrefs({
+      talkMode: (event.target as HTMLSelectElement).value as TalkMode,
+    });
+  }
+
+  private onReduceMotionInput(event: Event) {
+    this.updatePrefs({
+      reduceMotion: (event.target as HTMLInputElement).checked,
+    });
+  }
+
   private onTalkKeydown(event: KeyboardEvent) {
-    if (event.code === 'Space' || event.key === ' ') {
-      event.preventDefault();
-      void this.startRecording();
+    if (event.code !== 'Space' && event.key !== ' ') {
+      return;
     }
+    event.preventDefault();
+    if (event.repeat) {
+      return;
+    }
+    if (this.prefs.talkMode === 'tap') {
+      this.toggleTalk();
+      return;
+    }
+    void this.startRecording();
   }
 
   private onTalkKeyup(event: KeyboardEvent) {
-    if (event.code === 'Space' || event.key === ' ') {
-      event.preventDefault();
-      this.stopRecording();
+    if (event.code !== 'Space' && event.key !== ' ') {
+      return;
     }
+    event.preventDefault();
+    if (this.prefs.talkMode === 'tap') {
+      return;
+    }
+    this.stopRecording();
   }
 
   render() {
@@ -1102,6 +1152,15 @@ export class GdmLiveAudio extends LitElement {
     );
     const insecure = !isSecureAudioContext(window);
     const talkDisabled = listening ? false : insecure || !canStartListening(phase);
+    const lang = uiLanguage(this.prefs, navigator.language);
+    const strings = copy(lang);
+    const talkLabel =
+      this.prefs.talkMode === 'tap' ? strings.tapMode : strings.holdMode;
+    const shownStatus = localizeStatus(
+      error || (insecure ? insecureMicMessage() : status),
+      lang,
+      this.prefs.talkMode,
+    );
 
     return html`
       <main>
@@ -1109,29 +1168,25 @@ export class GdmLiveAudio extends LitElement {
           ? html`
               <form class="key-gate" @submit=${this.saveApiKey}>
                 <div class="key-card">
-                  <h1>${PRODUCT_NAME}</h1>
-                  <p>${PRODUCT_TAGLINE}</p>
+                  <h1>${strings.name}</h1>
+                  <p>${strings.tagline}</p>
                   ${this.authMode === 'unknown'
-                    ? html`<p>Opening session…</p>`
+                    ? html`<p>${strings.opening}</p>`
                     : html`
-                        <p>
-                          Paste a Gemini key only for local testing. It stays in
-                          this tab’s memory. Prefer a server key so testers never
-                          paste one.
-                        </p>
+                        <p>${strings.pasteKey}</p>
                         ${error
-                          ? html`<p class="error" role="alert">${error}</p>`
+                          ? html`<p class="error" role="alert">${shownStatus}</p>`
                           : ''}
                         <input
                           type="password"
                           autocomplete="off"
                           maxlength=${MAX_API_KEY_LENGTH}
-                          placeholder="Gemini API key"
-                          aria-label="Gemini API key"
+                          placeholder=${strings.keyLabel}
+                          aria-label=${strings.keyLabel}
                           .value=${this.keyDraft}
                           @input=${this.updateKeyDraft} />
                         <button type="submit" ?disabled=${this.connectInFlight}>
-                          ${this.connectInFlight ? 'Connecting…' : 'Connect'}
+                          ${this.connectInFlight ? strings.connecting : strings.connect}
                         </button>
                         ${this.apiKey
                           ? html`<button
@@ -1139,7 +1194,7 @@ export class GdmLiveAudio extends LitElement {
                               @click=${() => {
                                 this.editingKey = false;
                               }}>
-                              Back
+                              ${strings.back}
                             </button>`
                           : ''}
                       `}
@@ -1152,7 +1207,7 @@ export class GdmLiveAudio extends LitElement {
             ? this.transcript.turns.map(
                 (turn) => html`
                   <p>
-                    <strong>${turn.side === 'user' ? 'You' : 'Orb'}</strong>
+                    <strong>${turn.side === 'user' ? strings.you : strings.orb}</strong>
                     <span class="empty">
                       ${new Date(turn.at).toLocaleTimeString()}</span
                     >
@@ -1160,14 +1215,14 @@ export class GdmLiveAudio extends LitElement {
                   </p>
                 `,
               )
-            : html`<p class="empty">Hold Talk and speak. Release to pause.</p>`}
+            : html`<p class="empty">${talkHint(this.prefs.talkMode, lang)}</p>`}
           ${this.transcript.clipped
-            ? html`<p class="clip-note">Older lines were dropped to keep this device light.</p>`
+            ? html`<p class="clip-note">${strings.clipped}</p>`
             : ''}
           ${this.undoTranscript
             ? html`<p>
                 <button type="button" class="undo" @click=${this.undoClear}>
-                  Undo clear
+                  ${strings.undoClear}
                 </button>
               </p>`
             : ''}
@@ -1178,9 +1233,9 @@ export class GdmLiveAudio extends LitElement {
                 class="more-sheet"
                 role="dialog"
                 aria-modal="true"
-                aria-label="More controls">
+                aria-label=${strings.more}>
                 <label>
-                  Voice
+                  ${strings.voice}
                   <select .value=${this.prefs.voice} @change=${this.onVoiceInput}>
                     ${LIVE_VOICES.map(
                       (voice) => html`<option value=${voice}>${voice}</option>`,
@@ -1188,21 +1243,31 @@ export class GdmLiveAudio extends LitElement {
                   </select>
                 </label>
                 <label>
-                  Reply language
+                  ${strings.replyLanguage}
                   <select .value=${this.prefs.language} @change=${this.onLanguageInput}>
                     ${REPLY_LANGUAGES.map(
                       (language) => html`<option value=${language}>
                         ${language === 'auto'
-                          ? 'Match what I speak'
+                          ? strings.matchSpeech
                           : language === 'hi'
-                            ? 'Hindi'
-                            : 'English'}
+                            ? strings.hindi
+                            : strings.english}
                       </option>`,
                     )}
                   </select>
                 </label>
                 <label>
-                  Volume ${Math.round(this.prefs.volume * 100)}%
+                  ${strings.talkMode}
+                  <select .value=${this.prefs.talkMode} @change=${this.onTalkModeInput}>
+                    ${TALK_MODES.map(
+                      (mode) => html`<option value=${mode}>
+                        ${mode === 'tap' ? strings.tapMode : strings.holdMode}
+                      </option>`,
+                    )}
+                  </select>
+                </label>
+                <label>
+                  ${strings.volume} ${Math.round(this.prefs.volume * 100)}%
                   <input
                     type="range"
                     min="0"
@@ -1211,26 +1276,34 @@ export class GdmLiveAudio extends LitElement {
                     .value=${String(this.prefs.volume)}
                     @input=${this.onVolumeInput} />
                 </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    .checked=${this.prefs.reduceMotion}
+                    @change=${this.onReduceMotionInput} />
+                  ${strings.reduceMotion}
+                </label>
+                <p class="empty">${strings.privacyTitle}: ${strings.privacy}</p>
                 <div class="more-actions">
                   <button type="button" @click=${this.clearKey}>
-                    ${this.authMode === 'hosted' ? 'Use my key' : 'Change key'}
+                    ${this.authMode === 'hosted' ? strings.useMyKey : strings.changeKey}
                   </button>
                   ${this.authMode === 'byo' && this.hostedAvailable
                     ? html`<button type="button" @click=${this.useHostedSession}>
-                        Use hosted session
+                        ${strings.useHosted}
                       </button>`
                     : ''}
                   <button
                     type="button"
                     @click=${this.reconnect}
                     ?disabled=${!canRetry(phase)}>
-                    Reconnect
+                    ${strings.reconnect}
                   </button>
                   <button type="button" @click=${this.exportChat} ?disabled=${!hasTurns}>
-                    Export
+                    ${strings.export}
                   </button>
                   <button type="button" @click=${this.clearChat} ?disabled=${!hasTurns}>
-                    Clear
+                    ${strings.clear}
                   </button>
                 </div>
               </div>
@@ -1239,50 +1312,46 @@ export class GdmLiveAudio extends LitElement {
         ${this.showKeyGate
           ? ''
           : html`
-              <div class="controls" role="toolbar" aria-label="Talk">
+              <div class="controls" role="toolbar" aria-label=${strings.talk}>
                 <button
                   type="button"
                   data-kind="talk"
-                  aria-label=${listening ? `Hold to talk, ${remaining} remaining` : 'Hold to talk'}
+                  aria-label=${listening
+                    ? `${strings.talk}, ${remaining}`
+                    : `${talkLabel} ${strings.talk}`}
                   aria-pressed=${listening}
-                  title=${insecure ? insecureMicMessage() : 'Hold to talk'}
+                  title=${insecure ? insecureMicMessage() : `${talkLabel} ${strings.talk}`}
                   @pointerdown=${this.onTalkPointerDown}
                   @pointerup=${this.onTalkPointerUp}
                   @pointercancel=${this.onTalkPointerUp}
                   @keydown=${this.onTalkKeydown}
                   @keyup=${this.onTalkKeyup}
                   ?disabled=${talkDisabled}>
-                  Talk
+                  ${strings.talk}
                   ${listening ? html`<span class="talk-time">${remaining}</span>` : ''}
                 </button>
                 <button
                   type="button"
                   data-kind="more"
                   aria-expanded=${this.moreOpen}
-                  aria-label="More controls"
+                  aria-label=${strings.more}
                   @click=${() => {
                     this.moreOpen = !this.moreOpen;
                     if (!this.moreOpen) {
                       this.lastFocusedReady = false;
                     }
                   }}>
-                  More
+                  ${strings.more}
                 </button>
               </div>
             `}
-        <p class="privacy">
-          ${insecure
-            ? insecureMicMessage()
-            : html`Audio leaves this device only while Talk is held.
-                ${this.authMode === 'hosted'
-                  ? ' This preview uses a short-lived token, not your long-lived key.'
-                  : ' This is still test-only.'}`}
-        </p>
+        <p class="privacy">${insecure ? insecureMicMessage() : strings.privacy}</p>
         <div id="status" role="status" data-kind=${error || insecure ? 'error' : 'info'}>
-          ${error || (insecure ? insecureMicMessage() : status)}
+          ${shownStatus}
         </div>
         <gdm-live-audio-visuals-3d
           .phase=${phase}
+          .reducedMotion=${this.prefs.reduceMotion}
           .inputNode=${this.inputNode}
           .outputNode=${this.outputNode}></gdm-live-audio-visuals-3d>
       </main>

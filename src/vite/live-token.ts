@@ -3,7 +3,7 @@ import type {IncomingMessage, ServerResponse} from 'node:http';
 import type {Plugin} from 'vite';
 import {issuerClientIp} from '../auth/client-ip';
 import {buildTokenCreateConfig, readMintedToken} from '../auth/mint-token';
-import {checkMintRate} from '../auth/mint-rate-limit';
+import {checkMintRate, pruneMintLog} from '../auth/mint-rate-limit';
 
 const lastMintByIp = new Map<string, number>();
 
@@ -51,6 +51,7 @@ function attachIssuer(
       return;
     }
     lastMintByIp.set(ip, now);
+    pruneMintLog(lastMintByIp, now);
 
     void mintFromServerKey(apiKey)
       .then((minted) => {
@@ -78,7 +79,7 @@ function attachUnavailable(middlewares: {
       next();
       return;
     }
-    writeJson(res, 404, {available: false});
+    writeJson(res, 200, {available: false});
   });
 }
 

@@ -44,4 +44,14 @@ Critic loop 2 (code review, no live Gemini):
 - Still open: shared-password mint, durable host, live E2E.
 - Critic loop 3: hosted path no longer burns `uses:1` on a fallback model; resume reuses a live token until expiry; mint rate-limit key is CF/socket not XFF; “Use hosted session” returns after BYO; settings apply even while holding Talk; reduced-motion backdrop no longer flickers.
 
-Valid leftover work: user-auth in front of mint, durable host, live E2E. Not leftover: career OS, camera, replacing Lit.
+| TASK-G024 | Cumulative transcripts doubled | Known issue | VERIFIED | Prefix/snapshot merge | IMPLEMENTED / TESTED |
+| TASK-G025 | Orb stays speaking after playback | Critic / UX | VERIFIED | SPEAKING_DONE | IMPLEMENTED / TESTED |
+| TASK-G026 | Hold-only Talk is hard on mobile | Forensic expected | VERIFIED | Tap mode | IMPLEMENTED / TESTED |
+| TASK-G027 | Hindi speakers get English chrome | Owner language | VERIFIED | UI copy + `lang` | IMPLEMENTED / TESTED |
+| TASK-G028 | Missing issuer logs a 404 | Console noise | VERIFIED | 200 `{available:false}` | IMPLEMENTED / TESTED |
+| TASK-G029 | Mint IP map can grow | SRE | VERIFIED | pruneMintLog | IMPLEMENTED / TESTED |
+| TASK-G030 | No privacy copy in product | Forensic expected | VERIFIED | More sheet + footer | IMPLEMENTED |
+
+Still BLOCKED: user-auth in front of mint, durable host, live Gemini E2E.
+
+Not leftover: career OS, camera, replacing Lit.

@@ -10,7 +10,7 @@ function jsonResponse(status: number, body: unknown): Response {
 
 describe('fetchHostedCredential', () => {
   it('uses BYO key when no issuer is deployed', async () => {
-    const result = await fetchHostedCredential(async () => jsonResponse(404, {available: false}));
+    const result = await fetchHostedCredential(async () => jsonResponse(200, {available: false}));
     expect(result).toEqual({mode: 'byo'});
   });
 
