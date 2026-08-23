@@ -30,3 +30,5 @@ Without a server key, paste a Gemini key in the UI. That value stays in tab memo
 Start with [docs/PRODUCT_VISION.md](docs/PRODUCT_VISION.md).
 
 Adversarial inspection (2026-08-23): [docs/red-team/RED_TEAM_FINDINGS.md](docs/red-team/RED_TEAM_FINDINGS.md).
+
+Forensic reconstruction (current code): [docs/forensic/README.md](docs/forensic/README.md). The older red-team specialist files are historical; several claims are stale after remediations.
