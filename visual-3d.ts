@@ -205,7 +205,9 @@ export class GdmLiveAudioVisuals3D extends LitElement {
     const sphereMaterial = this.sphere.material as THREE.MeshStandardMaterial;
     sphereMaterial.emissive.setHex(this.phaseEmissive());
 
-    backdropMaterial.uniforms.rand.value = Math.random() * 10000;
+    backdropMaterial.uniforms.rand.value = this.reduceMotion
+      ? 0
+      : Math.random() * 10000;
 
     if (sphereMaterial.userData.shader) {
       const input = this.inputAnalyser?.data ?? new Uint8Array(3);

@@ -9,6 +9,7 @@ import {LitElement, css, html} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 import {MAX_API_KEY_LENGTH, validateApiKey} from './src/auth/api-key';
 import {fetchHostedCredential} from './src/auth/live-session';
+import {shouldRemint} from './src/auth/token-expiry';
 import {isAudible} from './src/audio/level';
 import {
   MAX_LISTEN_MS,
@@ -45,6 +46,7 @@ import {
   reduceSession,
 } from './src/session/machine';
 import {nextBackoffMs, nextResumptionHandle, shouldAutoReconnect} from './src/session/reconnect';
+import {modelsToTry} from './src/live/models';
 import {track} from './src/telemetry/events';
 import {isSheetDismissKey, pathDismissesMore} from './src/ui/dismiss';
 import {
@@ -70,6 +72,7 @@ export class GdmLiveAudio extends LitElement {
   @state() undoTranscript: TranscriptState | null = null;
   @state() prefs: UserPrefs = DEFAULT_PREFS;
   @state() moreOpen = false;
+  @state() hostedAvailable = false;
   @state() listenNow = 0;
   @state() inputNode?: GainNode;
   @state() outputNode?: GainNode;
@@ -96,6 +99,7 @@ export class GdmLiveAudio extends LitElement {
   private reconnectArmed = false;
   private userClosed = false;
   private resumptionHandle?: string;
+  private hostedExpireTime?: string;
   private lastFocusedReady = false;
   private useAlphaLiveApi = false;
   private playbackChain: Promise<void> = Promise.resolve();
@@ -384,12 +388,8 @@ export class GdmLiveAudio extends LitElement {
   private async bootstrapAuth() {
     const hosted = await fetchHostedCredential();
     if (hosted.mode === 'hosted') {
-      this.authMode = 'hosted';
-      this.apiKey = hosted.token;
-      this.editingKey = false;
-      this.useAlphaLiveApi = true;
-      this.applyEvent({type: 'KEY_SUBMITTED'});
-      await this.initClient();
+      this.hostedAvailable = true;
+      await this.applyHostedToken(hosted.token, hosted.expireTime);
       return;
     }
     if (hosted.mode === 'error') {
@@ -460,7 +460,11 @@ export class GdmLiveAudio extends LitElement {
     this.applyEvent({type: 'CONNECT_STARTED'});
     track('session_connect_started', {model: LIVE_MODEL});
 
-    const models = [LIVE_MODEL, LIVE_MODEL_FALLBACK];
+    const models = modelsToTry(
+      this.authMode === 'hosted',
+      LIVE_MODEL,
+      LIVE_MODEL_FALLBACK,
+    );
     let lastError: unknown;
 
     for (const model of models) {
@@ -848,25 +852,60 @@ export class GdmLiveAudio extends LitElement {
     this.editingKey = false;
     this.applyEvent({type: 'RETRY'});
     if (this.authMode === 'hosted') {
-      const hosted = await fetchHostedCredential();
-      if (hosted.mode !== 'hosted') {
-        this.reconnectArmed = false;
-        this.applyEvent({
-          type: 'ERROR',
-          kind: 'connect',
-          message:
-            hosted.mode === 'error'
-              ? humanizeError('connect', hosted.message)
-              : 'Hosted session expired. Reconnect or paste a Gemini key.',
-        });
-        return;
+      const reuseToken =
+        Boolean(this.apiKey) &&
+        Boolean(this.resumptionHandle) &&
+        !shouldRemint(this.hostedExpireTime, Date.now());
+      if (!reuseToken) {
+        const hosted = await fetchHostedCredential();
+        if (hosted.mode !== 'hosted') {
+          this.reconnectArmed = false;
+          this.applyEvent({
+            type: 'ERROR',
+            kind: 'connect',
+            message:
+              hosted.mode === 'error'
+                ? humanizeError('connect', hosted.message)
+                : 'Hosted session expired. Reconnect or paste a Gemini key.',
+          });
+          return;
+        }
+        this.apiKey = hosted.token;
+        this.hostedExpireTime = hosted.expireTime;
+        this.useAlphaLiveApi = true;
       }
-      this.apiKey = hosted.token;
-      this.useAlphaLiveApi = true;
       await this.initClient();
       return;
     }
     await this.initSession();
+  }
+
+  private async applyHostedToken(token: string, expireTime?: string) {
+    this.authMode = 'hosted';
+    this.hostedAvailable = true;
+    this.apiKey = token;
+    this.hostedExpireTime = expireTime;
+    this.editingKey = false;
+    this.useAlphaLiveApi = true;
+    this.applyEvent({type: 'KEY_SUBMITTED'});
+    await this.initClient();
+  }
+
+  private async useHostedSession() {
+    const hosted = await fetchHostedCredential();
+    if (hosted.mode !== 'hosted') {
+      this.applyEvent({
+        type: 'ERROR',
+        kind: 'connect',
+        message:
+          hosted.mode === 'error'
+            ? humanizeError('connect', hosted.message)
+            : 'Hosted session is unavailable. Paste a Gemini key to test locally.',
+      });
+      return;
+    }
+    this.resumptionHandle = undefined;
+    await this.applyHostedToken(hosted.token, hosted.expireTime);
   }
 
   private async saveApiKey(event: Event) {
@@ -903,6 +942,7 @@ export class GdmLiveAudio extends LitElement {
   private clearKey() {
     this.userClosed = true;
     this.resumptionHandle = undefined;
+    this.hostedExpireTime = undefined;
     this.reconnectAttempts = 0;
     this.reconnectArmed = false;
     window.clearTimeout(this.reconnectTimer);
@@ -980,7 +1020,11 @@ export class GdmLiveAudio extends LitElement {
 
   private async applyLiveSettings() {
     const phase = this.sessionState.phase;
-    if (phase !== 'ready' && !canRetry(phase)) {
+    if (phase === 'listening' || phase === 'speaking') {
+      this.stopRecording('teardown');
+    }
+    const nextPhase = this.sessionState.phase;
+    if (nextPhase !== 'ready' && !canRetry(nextPhase)) {
       return;
     }
     this.stopRecording('teardown');
@@ -1171,6 +1215,11 @@ export class GdmLiveAudio extends LitElement {
                   <button type="button" @click=${this.clearKey}>
                     ${this.authMode === 'hosted' ? 'Use my key' : 'Change key'}
                   </button>
+                  ${this.authMode === 'byo' && this.hostedAvailable
+                    ? html`<button type="button" @click=${this.useHostedSession}>
+                        Use hosted session
+                      </button>`
+                    : ''}
                   <button
                     type="button"
                     @click=${this.reconnect}

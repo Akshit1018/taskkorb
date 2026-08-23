@@ -1,18 +1,11 @@
 import {GoogleGenAI, type CreateAuthTokenConfig} from '@google/genai';
 import type {IncomingMessage, ServerResponse} from 'node:http';
 import type {Plugin} from 'vite';
+import {issuerClientIp} from '../auth/client-ip';
 import {buildTokenCreateConfig, readMintedToken} from '../auth/mint-token';
 import {checkMintRate} from '../auth/mint-rate-limit';
 
 const lastMintByIp = new Map<string, number>();
-
-function clientIp(req: IncomingMessage): string {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string' && forwarded.trim()) {
-    return forwarded.split(',')[0].trim();
-  }
-  return req.socket.remoteAddress ?? 'unknown';
-}
 
 function writeJson(res: ServerResponse, status: number, body: unknown) {
   res.statusCode = status;
@@ -46,7 +39,7 @@ function attachIssuer(
       return;
     }
 
-    const ip = clientIp(req);
+    const ip = issuerClientIp(req);
     const now = Date.now();
     const rate = checkMintRate(lastMintByIp.get(ip) ?? 0, now);
     if (rate.allowed === false) {
