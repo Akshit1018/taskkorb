@@ -26,3 +26,5 @@ The UI key stays in the current browser tab. That is for testing only.
 ## Product memory
 
 Start with [docs/PRODUCT_VISION.md](docs/PRODUCT_VISION.md).
+
+Adversarial inspection (2026-08-23): [docs/red-team/RED_TEAM_FINDINGS.md](docs/red-team/RED_TEAM_FINDINGS.md).
