@@ -1,23 +1,25 @@
 {
-  "name": "copy-of-audio-orb",
+  "name": "taskkorb",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "lit": "^3.3.0",
-    "@lit/context": "^1.1.5",
     "@google/genai": "^1.15.0",
+    "@lit/context": "^1.1.5",
+    "lit": "^3.3.0",
     "three": "^0.176.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
-    
     "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+    "vite": "^6.2.0",
+    "vitest": "^4.1.11"
   }
 }
