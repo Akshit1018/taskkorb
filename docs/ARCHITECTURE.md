@@ -19,7 +19,7 @@ src/product     product identity and model/voice constants
 src/session     conversation lifecycle
 src/audio       PCM encode/decode
 src/auth        key validation + hosted token client
-src/vite        preview gate + token issuer
+src/vite        preview gate + token issuer + health
 src/telemetry   structured events
 index.tsx       live session UI and capture/playback
 visual-3d.ts    renderer only

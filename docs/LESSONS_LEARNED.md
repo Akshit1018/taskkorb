@@ -5,4 +5,5 @@
 - Preview model IDs rot. Keep them in one constants file.
 - Tunnels are not releases.
 - Removing sessionStorage is not a credential boundary. A token issuer is.
+- Five equal buttons is how a voice product hides its only action.
 - Do not invent candidate/resume systems on top of an audio orb to look complete.

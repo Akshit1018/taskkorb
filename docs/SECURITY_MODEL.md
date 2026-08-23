@@ -18,6 +18,8 @@ Two credential modes:
 - Microphone audio is sent to Google only while Talk is held
 - Capture graph must not play the microphone back through speakers
 - Public preview URLs should set `PREVIEW_PASSWORD`; the gate must not serve `/src` without the cookie
+- The preview cookie is an opaque session token, not the password itself
+- `GET /api/health` is public and must never include secrets
 
 ## Production requirement
 

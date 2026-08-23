@@ -12,6 +12,7 @@
 | TASK-008 | Red-team P0/P1 live-loop and UX defects | P0 | DONE |
 | TASK-009 | Hosted ephemeral token + preview-gate leak + form torture leftovers | P0 | DONE — live mint UNVERIFIED |
 | TASK-010 | Forensic product intelligence (inspect-only) | — | DONE — see docs/forensic/ |
+| TASK-011 | Green Team voice-surface baseline | P1 | DONE — see docs/GREEN_TEAM_TASKS.md |
 
 ## Rejected
 

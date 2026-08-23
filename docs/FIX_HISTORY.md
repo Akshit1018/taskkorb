@@ -1,5 +1,13 @@
 # Fix History
 
+## 2026-08-23 green-team voice baseline
+
+- Symptom: Talk was one of five equal buttons; hold died on finger slide; talk-cap bypassed the reducer; preview cookie stored the password; transcripts were a silent scrap; dead EXR still shipped.
+- Root Cause: remediations made the demo safer but left the conversation surface looking like a developer console.
+- Fix: Talk-first UI, pointer capture, LISTEN_CAPPED, opaque preview session, dated transcript turns + undo + clip notice, voice/language/volume, orb phase tint, `/api/health`, remove EXR/`utils.ts`.
+- Verification: unit tests + typecheck + production build. Live talk still UNVERIFIED.
+- Related: no durable host, no user-auth in front of mint, incumbents still win onboarding.
+
 ## 2026-08-23 hosted token + remaining P0 leaks
 
 - Symptom: public preview still required a long-lived Gemini key in the tab; preview gate leaked `/src` without a cookie; form accepted junk keys and double-submit.

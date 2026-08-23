@@ -12,10 +12,9 @@ import {customElement, property} from 'lit/decorators.js';
 import {Analyser} from './analyser';
 
 import * as THREE from 'three';
-import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
-import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {fs as backdropFS, vs as backdropVS} from './backdrop-shader';
 import {vs as sphereVS} from './sphere-shader';
+import type {SessionPhase} from './src/session/machine';
 
 /**
  * 3D live audio visual.
@@ -26,10 +25,13 @@ export class GdmLiveAudioVisuals3D extends LitElement {
   private outputAnalyser?: Analyser;
   private camera!: THREE.PerspectiveCamera;
   private backdrop!: THREE.Mesh;
-  private composer!: EffectComposer;
+  private renderer?: THREE.WebGLRenderer;
+  private scene?: THREE.Scene;
   private sphere!: THREE.Mesh;
   private prevTime = 0;
   private rotation = new THREE.Vector3(0, 0, 0);
+
+  @property() phase: SessionPhase = 'locked';
 
   private _outputNode?: AudioNode;
 
@@ -140,11 +142,8 @@ export class GdmLiveAudioVisuals3D extends LitElement {
     sphere.visible = true;
 
     this.sphere = sphere;
-
-    const renderPass = new RenderPass(scene, camera);
-    const composer = new EffectComposer(renderer);
-    composer.addPass(renderPass);
-    this.composer = composer;
+    this.renderer = renderer;
+    this.scene = scene;
 
     function onWindowResize() {
       camera.aspect = window.innerWidth / window.innerHeight;
@@ -154,7 +153,6 @@ export class GdmLiveAudioVisuals3D extends LitElement {
       const h = window.innerHeight;
       backdrop.material.uniforms.resolution.value.set(w * dPR, h * dPR);
       renderer.setSize(w, h);
-      composer.setSize(w, h);
     }
 
     this.onWindowResize = onWindowResize;
@@ -189,7 +187,7 @@ export class GdmLiveAudioVisuals3D extends LitElement {
     }
     this.frame = requestAnimationFrame(() => this.animation());
 
-    if (!this.composer || !this.backdrop || !this.sphere) {
+    if (!this.renderer || !this.scene || !this.backdrop || !this.sphere) {
       return;
     }
 
@@ -205,6 +203,7 @@ export class GdmLiveAudioVisuals3D extends LitElement {
     this.prevTime = t;
     const backdropMaterial = this.backdrop.material as THREE.RawShaderMaterial;
     const sphereMaterial = this.sphere.material as THREE.MeshStandardMaterial;
+    sphereMaterial.emissive.setHex(this.phaseEmissive());
 
     backdropMaterial.uniforms.rand.value = Math.random() * 10000;
 
@@ -248,7 +247,29 @@ export class GdmLiveAudioVisuals3D extends LitElement {
       );
     }
 
-    this.composer.render();
+    this.renderer.render(this.scene, this.camera);
+  }
+
+  private phaseEmissive(): number {
+    switch (this.phase) {
+      case 'listening':
+        return 0x1a4d2e;
+      case 'speaking':
+        return 0x7a0010;
+      case 'connecting':
+        return 0x1a1a40;
+      case 'error':
+      case 'closed':
+        return 0x4a2000;
+      case 'ready':
+        return 0x102040;
+      case 'locked':
+        return 0x000010;
+      default: {
+        const exhaustive: never = this.phase;
+        return exhaustive;
+      }
+    }
   }
 
   protected firstUpdated() {

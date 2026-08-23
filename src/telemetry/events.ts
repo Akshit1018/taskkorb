@@ -9,7 +9,10 @@ export type ProductEventName =
   | 'listen_started'
   | 'listen_stopped'
   | 'speech_interrupted'
-  | 'transcript_received';
+  | 'transcript_received'
+  | 'talk_capped'
+  | 'transcript_clipped'
+  | 'prefs_changed';
 
 export interface ProductEvent {
   name: ProductEventName;

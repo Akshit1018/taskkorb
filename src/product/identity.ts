@@ -12,9 +12,12 @@ export const LIVE_VOICE = 'Orus';
 export const SYSTEM_INSTRUCTION = `You are Taskkorb, a calm voice companion represented as a living orb.
 Keep spoken replies short and clear.
 Help the user think out loud, plan next steps, and decide.
-If the user speaks Hindi or Hinglish, reply in the same language.
 Do not claim to have taken real-world actions you cannot take.
 Never ask the user to paste secrets into chat.`;
+
+export function buildSystemInstruction(languageLine: string): string {
+  return `${SYSTEM_INSTRUCTION}\n${languageLine}`;
+}
 
 export const INPUT_SAMPLE_RATE = 16000;
 export const OUTPUT_SAMPLE_RATE = 24000;

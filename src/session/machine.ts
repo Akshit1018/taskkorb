@@ -19,6 +19,7 @@ export type SessionEvent =
   | {type: 'AUDIO_OUT'}
   | {type: 'INTERRUPTED'}
   | {type: 'LISTEN_STOPPED'}
+  | {type: 'LISTEN_CAPPED'}
   | {type: 'ERROR'; message: string; kind: ErrorKind}
   | {type: 'CLOSED'; reason: string}
   | {type: 'RESET'}
@@ -127,6 +128,15 @@ export function reduceSession(
       return {
         phase: 'ready',
         status: 'Paused. Hold Talk to speak again.',
+        error: '',
+      };
+    case 'LISTEN_CAPPED':
+      if (state.phase !== 'listening' && state.phase !== 'speaking') {
+        return state;
+      }
+      return {
+        phase: 'ready',
+        status: 'Talk limit reached. Hold Talk to start again.',
         error: '',
       };
     case 'ERROR':

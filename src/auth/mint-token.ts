@@ -1,4 +1,4 @@
-import {LIVE_MODEL, SYSTEM_INSTRUCTION} from '../product/identity';
+import {LIVE_MODEL} from '../product/identity';
 
 export const TOKEN_TTL_MS = 30 * 60 * 1000;
 export const NEW_SESSION_TTL_MS = 5 * 60 * 1000;
@@ -16,7 +16,6 @@ export interface TokenCreateConfig {
     model: string;
     config: {
       responseModalities: string[];
-      systemInstruction: string;
     };
   };
   httpOptions: {apiVersion: 'v1alpha'};
@@ -31,7 +30,6 @@ export function buildTokenCreateConfig(nowMs: number): TokenCreateConfig {
       model: LIVE_MODEL,
       config: {
         responseModalities: ['AUDIO'],
-        systemInstruction: SYSTEM_INSTRUCTION,
       },
     },
     httpOptions: {apiVersion: 'v1alpha'},

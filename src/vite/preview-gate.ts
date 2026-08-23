@@ -1,13 +1,13 @@
 import type {IncomingMessage, ServerResponse} from 'node:http';
 import type {Plugin} from 'vite';
+import {
+  PREVIEW_COOKIE,
+  PreviewSessions,
+  passwordsMatch,
+  readCookie,
+} from './preview-session';
 
-const COOKIE = 'taskkorb_preview';
-
-function readCookie(req: IncomingMessage, name: string): string {
-  const cookie = req.headers.cookie ?? '';
-  const match = cookie.match(new RegExp(`(?:^|;\\s*)${name}=([^;]+)`));
-  return match ? decodeURIComponent(match[1]) : '';
-}
+const sessions = new PreviewSessions();
 
 function gatePage(): string {
   return `<!DOCTYPE html>
@@ -40,17 +40,23 @@ function attachGate(middlewares: {
   middlewares.use((req, res, next) => {
     const url = req.url ?? '/';
 
+    if (req.method === 'GET' && url.startsWith('/api/health')) {
+      next();
+      return;
+    }
+
     if (req.method === 'POST' && url.startsWith('/__preview')) {
       const chunks: Buffer[] = [];
       req.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
       req.on('end', () => {
         const body = Buffer.concat(chunks).toString('utf8');
         const submitted = new URLSearchParams(body).get('password') ?? '';
-        if (submitted === password) {
+        if (passwordsMatch(submitted, password)) {
+          const token = sessions.issue();
           res.statusCode = 302;
           res.setHeader(
             'Set-Cookie',
-            `${COOKIE}=${encodeURIComponent(password)}; Path=/; SameSite=Lax; HttpOnly`,
+            `${PREVIEW_COOKIE}=${encodeURIComponent(token)}; Path=/; SameSite=Lax; HttpOnly`,
           );
           res.setHeader('Location', '/');
           res.end();
@@ -63,7 +69,7 @@ function attachGate(middlewares: {
       return;
     }
 
-    if (readCookie(req, COOKIE) === password) {
+    if (sessions.has(readCookie(req.headers.cookie, PREVIEW_COOKIE))) {
       next();
       return;
     }

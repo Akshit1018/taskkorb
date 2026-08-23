@@ -61,6 +61,20 @@ describe('session machine', () => {
     expect(cleared.phase).toBe('locked');
   });
 
+  it('returns to ready through the reducer when talk is capped', () => {
+    const connecting = reduceSession(INITIAL_SESSION, {type: 'KEY_SUBMITTED'});
+    const ready = reduceSession(connecting, {type: 'OPENED'});
+    const listening = reduceSession(
+      reduceSession(ready, {type: 'LISTEN_START_REQUESTED'}),
+      {type: 'LISTEN_STARTED'},
+    );
+    const capped = reduceSession(listening, {type: 'LISTEN_CAPPED'});
+
+    expect(capped.phase).toBe('ready');
+    expect(capped.status).toMatch(/limit/i);
+    expect(canStartListening(capped.phase)).toBe(true);
+  });
+
   it('does not leave error when listen stops after a failure', () => {
     const failed = reduceSession(INITIAL_SESSION, {
       type: 'ERROR',

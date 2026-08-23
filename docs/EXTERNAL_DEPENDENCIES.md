@@ -17,5 +17,4 @@
 
 ## Local EXR environment map
 
-- File: `public/piz_compressed.exr`
-- If missing, the orb still renders without a reflection map
+- Removed. The orb renders without a reflection map.
