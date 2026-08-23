@@ -7,298 +7,833 @@
 import {GoogleGenAI, LiveServerMessage, Modality, Session} from '@google/genai';
 import {LitElement, css, html} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
-import {createBlob, decode, decodeAudioData} from './utils';
+import {MAX_API_KEY_LENGTH, validateApiKey} from './src/auth/api-key';
+import {fetchHostedCredential} from './src/auth/live-session';
+import {isAudible} from './src/audio/level';
+import {createBlob, decode, decodeAudioData} from './src/audio/pcm';
+import {humanizeError} from './src/errors/humanize';
+import {
+  INPUT_SAMPLE_RATE,
+  LIVE_MODEL,
+  LIVE_MODEL_FALLBACK,
+  LIVE_VOICE,
+  OUTPUT_SAMPLE_RATE,
+  PRODUCT_NAME,
+  PRODUCT_TAGLINE,
+  SYSTEM_INSTRUCTION,
+} from './src/product/identity';
+import {
+  INITIAL_SESSION,
+  SessionSnapshot,
+  canRetry,
+  canStartListening,
+  reduceSession,
+} from './src/session/machine';
+import {track} from './src/telemetry/events';
+import {
+  EMPTY_TRANSCRIPT,
+  appendTranscript,
+  clearStoredTranscript,
+  exportTranscript,
+  readStoredTranscript,
+  writeStoredTranscript,
+} from './src/transcript/store';
 import './visual-3d';
+
+const MAX_LISTEN_MS = 180_000;
 
 @customElement('gdm-live-audio')
 export class GdmLiveAudio extends LitElement {
-  @state() isRecording = false;
-  @state() status = '';
-  @state() error = '';
+  @state() apiKey = '';
+  @state() keyDraft = '';
+  @state() editingKey = true;
+  @state() authMode: 'unknown' | 'hosted' | 'byo' = 'unknown';
+  @state() connectInFlight = false;
+  @state() sessionState: SessionSnapshot = INITIAL_SESSION;
+  @state() userTranscript = '';
+  @state() orbTranscript = '';
+  @state() inputNode?: GainNode;
+  @state() outputNode?: GainNode;
 
-  private client: GoogleGenAI;
-  private session: Session;
-  private inputAudioContext = new (window.AudioContext ||
-    window.webkitAudioContext)({sampleRate: 16000});
-  private outputAudioContext = new (window.AudioContext ||
-    window.webkitAudioContext)({sampleRate: 24000});
-  @state() inputNode = this.inputAudioContext.createGain();
-  @state() outputNode = this.outputAudioContext.createGain();
+  private client?: GoogleGenAI;
+  private session?: Session;
+  private inputAudioContext?: AudioContext;
+  private outputAudioContext?: AudioContext;
   private nextStartTime = 0;
-  private mediaStream: MediaStream;
-  private sourceNode: AudioBufferSourceNode;
-  private scriptProcessorNode: ScriptProcessorNode;
+  private mediaStream?: MediaStream;
+  private sourceNode?: MediaStreamAudioSourceNode;
+  private workletNode?: AudioWorkletNode;
+  private scriptProcessorNode?: ScriptProcessorNode;
   private sources = new Set<AudioBufferSourceNode>();
+  private connectGeneration = 0;
+  private listenInFlight = false;
+  private listenCancelRequested = false;
+  private listenStartedAt = 0;
+  private listenCapTimer = 0;
+  private useAlphaLiveApi = false;
 
   static styles = css`
+    :host {
+      font-family: system-ui, sans-serif;
+    }
+
     #status {
       position: absolute;
-      bottom: 5vh;
-      left: 0;
-      right: 0;
+      bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+      left: 16px;
+      right: 16px;
       z-index: 10;
       text-align: center;
+      color: rgba(255, 255, 255, 0.86);
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    #status[data-kind='error'] {
+      color: #ffb4b4;
+    }
+
+    .transcript {
+      position: absolute;
+      top: calc(16px + env(safe-area-inset-top, 0px));
+      left: 16px;
+      right: 16px;
+      z-index: 10;
+      max-width: 640px;
+      max-height: 28vh;
+      overflow: auto;
+      margin: 0 auto;
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 15px;
+      line-height: 1.45;
+      text-align: center;
+    }
+
+    .transcript p {
+      margin: 0 0 8px;
     }
 
     .controls {
       z-index: 10;
       position: absolute;
-      bottom: 10vh;
-      left: 0;
-      right: 0;
+      bottom: calc(10vh + env(safe-area-inset-bottom, 0px));
+      left: 16px;
+      right: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    button {
+      outline: none;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.1);
+      min-height: 48px;
+      min-width: 48px;
+      cursor: pointer;
+      padding: 0 14px;
+      font: inherit;
+    }
+
+    button:focus-visible {
+      outline: 2px solid #fff;
+      outline-offset: 3px;
+    }
+
+    button:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    button:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    button[data-kind='talk'] {
+      min-width: 96px;
+      min-height: 72px;
+      border-radius: 999px;
+      background: #c80000;
+      border-color: transparent;
+      font-weight: 700;
+    }
+
+    button[data-kind='talk'][aria-pressed='true'] {
+      background: #7a0000;
+    }
+
+    .privacy {
+      position: absolute;
+      bottom: calc(52px + env(safe-area-inset-bottom, 0px));
+      left: 16px;
+      right: 16px;
+      z-index: 10;
+      text-align: center;
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 12px;
+    }
+
+    .key-gate {
+      position: absolute;
+      inset: 0;
+      z-index: 20;
       display: flex;
       align-items: center;
       justify-content: center;
-      flex-direction: column;
-      gap: 10px;
+      background: rgba(8, 6, 12, 0.78);
+      padding: 24px;
+    }
 
-      button {
-        outline: none;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        color: white;
-        border-radius: 12px;
-        background: rgba(255, 255, 255, 0.1);
-        width: 64px;
-        height: 64px;
-        cursor: pointer;
-        font-size: 24px;
-        padding: 0;
-        margin: 0;
+    .key-card {
+      width: min(420px, 100%);
+      color: white;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 20px;
+      padding: 24px;
+    }
 
-        &:hover {
-          background: rgba(255, 255, 255, 0.2);
-        }
-      }
+    .key-card h1 {
+      margin: 0 0 8px;
+      font-size: 22px;
+    }
 
-      button[disabled] {
-        display: none;
-      }
+    .key-card p {
+      margin: 0 0 16px;
+      color: rgba(255, 255, 255, 0.72);
+      line-height: 1.4;
+    }
+
+    .key-card input {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.28);
+      color: white;
+      padding: 12px 14px;
+      font-size: 16px;
+    }
+
+    .key-card input:focus-visible,
+    .key-card button:focus-visible {
+      outline: 2px solid #fff;
+      outline-offset: 2px;
+    }
+
+    .key-card button {
+      margin-top: 12px;
+      width: 100%;
+      height: 48px;
+      border: 0;
+      border-radius: 12px;
+      background: white;
+      color: #100c14;
+      font-weight: 600;
+    }
+
+    .error {
+      color: #ffb4b4;
     }
   `;
 
-  constructor() {
-    super();
-    this.initClient();
+  connectedCallback() {
+    super.connectedCallback();
+    const stored = readStoredTranscript();
+    this.userTranscript = stored.user;
+    this.orbTranscript = stored.orb;
+    void this.bootstrapAuth();
   }
 
-  private initAudio() {
-    this.nextStartTime = this.outputAudioContext.currentTime;
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.stopRecording();
+    this.session?.close();
+    window.clearTimeout(this.listenCapTimer);
+  }
+
+  private get showKeyGate(): boolean {
+    if (this.authMode === 'unknown') {
+      return true;
+    }
+    if (this.authMode === 'hosted' && !this.editingKey) {
+      return false;
+    }
+    return (
+      this.editingKey ||
+      !this.apiKey ||
+      this.sessionState.phase === 'locked' ||
+      this.sessionState.errorKind === 'key'
+    );
+  }
+
+  private async bootstrapAuth() {
+    const hosted = await fetchHostedCredential();
+    if (hosted.mode === 'hosted') {
+      this.authMode = 'hosted';
+      this.apiKey = hosted.token;
+      this.editingKey = false;
+      this.useAlphaLiveApi = true;
+      this.applyEvent({type: 'KEY_SUBMITTED'});
+      await this.initClient();
+      return;
+    }
+    if (hosted.mode === 'error') {
+      this.authMode = 'byo';
+      this.editingKey = true;
+      this.applyEvent({
+        type: 'ERROR',
+        kind: 'connect',
+        message: hosted.message,
+      });
+      return;
+    }
+    this.authMode = 'byo';
+  }
+
+  private applyEvent(event: Parameters<typeof reduceSession>[1]) {
+    this.sessionState = reduceSession(this.sessionState, event);
+  }
+
+  private persistTranscripts() {
+    writeStoredTranscript({
+      user: this.userTranscript,
+      orb: this.orbTranscript,
+    });
+  }
+
+  private ensureAudio() {
+    const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextCtor) {
+      throw new Error('Web Audio is not supported in this browser.');
+    }
+
+    if (!this.inputAudioContext) {
+      this.inputAudioContext = new AudioContextCtor({
+        sampleRate: INPUT_SAMPLE_RATE,
+      });
+      this.inputNode = this.inputAudioContext.createGain();
+    }
+
+    if (!this.outputAudioContext) {
+      this.outputAudioContext = new AudioContextCtor({
+        sampleRate: OUTPUT_SAMPLE_RATE,
+      });
+      this.outputNode = this.outputAudioContext.createGain();
+      this.outputNode.connect(this.outputAudioContext.destination);
+    }
   }
 
   private async initClient() {
-    this.initAudio();
-
+    this.ensureAudio();
+    await this.outputAudioContext?.resume();
+    this.nextStartTime = this.outputAudioContext?.currentTime ?? 0;
     this.client = new GoogleGenAI({
-      apiKey: process.env.GEMINI_API_KEY,
+      apiKey: this.apiKey,
+      ...(this.useAlphaLiveApi ? {httpOptions: {apiVersion: 'v1alpha'}} : {}),
     });
-
-    this.outputNode.connect(this.outputAudioContext.destination);
-
-    this.initSession();
+    await this.initSession();
   }
 
   private async initSession() {
-    const model = 'gemini-2.5-flash-native-audio-preview-09-2025';
-
-    try {
-      this.session = await this.client.live.connect({
-        model: model,
-        callbacks: {
-          onopen: () => {
-            this.updateStatus('Opened');
-          },
-          onmessage: async (message: LiveServerMessage) => {
-            const audio =
-              message.serverContent?.modelTurn?.parts[0]?.inlineData;
-
-            if (audio) {
-              this.nextStartTime = Math.max(
-                this.nextStartTime,
-                this.outputAudioContext.currentTime,
-              );
-
-              const audioBuffer = await decodeAudioData(
-                decode(audio.data),
-                this.outputAudioContext,
-                24000,
-                1,
-              );
-              const source = this.outputAudioContext.createBufferSource();
-              source.buffer = audioBuffer;
-              source.connect(this.outputNode);
-              source.addEventListener('ended', () => {
-                this.sources.delete(source);
-              });
-
-              source.start(this.nextStartTime);
-              this.nextStartTime = this.nextStartTime + audioBuffer.duration;
-              this.sources.add(source);
-            }
-
-            const interrupted = message.serverContent?.interrupted;
-            if (interrupted) {
-              for (const source of this.sources.values()) {
-                source.stop();
-                this.sources.delete(source);
-              }
-              this.nextStartTime = 0;
-            }
-          },
-          onerror: (e: ErrorEvent) => {
-            this.updateError(e.message);
-          },
-          onclose: (e: CloseEvent) => {
-            this.updateStatus('Close:' + e.reason);
-          },
-        },
-        config: {
-          responseModalities: [Modality.AUDIO],
-          speechConfig: {
-            voiceConfig: {prebuiltVoiceConfig: {voiceName: 'Orus'}},
-            // languageCode: 'en-GB'
-          },
-        },
-      });
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  private updateStatus(msg: string) {
-    this.status = msg;
-  }
-
-  private updateError(msg: string) {
-    this.error = msg;
-  }
-
-  private async startRecording() {
-    if (this.isRecording) {
+    if (!this.client) {
       return;
     }
 
-    this.inputAudioContext.resume();
+    const generation = ++this.connectGeneration;
+    this.session?.close();
+    this.session = undefined;
+    this.applyEvent({type: 'CONNECT_STARTED'});
+    track('session_connect_started', {model: LIVE_MODEL});
 
-    this.updateStatus('Requesting microphone access...');
+    const models = [LIVE_MODEL, LIVE_MODEL_FALLBACK];
+    let lastError: unknown;
+
+    for (const model of models) {
+      if (generation !== this.connectGeneration) {
+        return;
+      }
+      try {
+        const session = await this.client.live.connect({
+          model,
+          callbacks: {
+            onopen: () => {
+              if (generation !== this.connectGeneration) {
+                return;
+              }
+              this.applyEvent({type: 'OPENED'});
+              track('session_opened');
+            },
+            onmessage: async (message: LiveServerMessage) => {
+              if (generation !== this.connectGeneration) {
+                return;
+              }
+              await this.handleLiveMessage(message);
+            },
+            onerror: (e: ErrorEvent) => {
+              if (generation !== this.connectGeneration) {
+                return;
+              }
+              this.applyEvent({
+                type: 'ERROR',
+                kind: 'session',
+                message: humanizeError('session', e.message || 'Live session error'),
+              });
+              track('session_error', {reason: 'callback'});
+            },
+            onclose: (e: CloseEvent) => {
+              if (generation !== this.connectGeneration) {
+                return;
+              }
+              this.applyEvent({type: 'CLOSED', reason: e.reason});
+              track('session_closed', {reason: e.reason ? 'remote' : 'empty'});
+            },
+          },
+          config: {
+            responseModalities: [Modality.AUDIO],
+            systemInstruction: SYSTEM_INSTRUCTION,
+            inputAudioTranscription: {},
+            outputAudioTranscription: {},
+            speechConfig: {
+              voiceConfig: {prebuiltVoiceConfig: {voiceName: LIVE_VOICE}},
+            },
+          },
+        });
+        if (generation !== this.connectGeneration) {
+          session.close();
+          return;
+        }
+        this.session = session;
+        return;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    if (generation !== this.connectGeneration) {
+      return;
+    }
+
+    const raw = lastError instanceof Error ? lastError.message : 'Could not open a live session.';
+    this.applyEvent({
+      type: 'ERROR',
+      kind: 'key',
+      message: humanizeError('key', raw),
+    });
+    this.editingKey = true;
+    track('session_error', {reason: 'connect'});
+  }
+
+  private async handleLiveMessage(message: LiveServerMessage) {
+    const inputText = message.serverContent?.inputTranscription?.text;
+    if (inputText) {
+      this.userTranscript = appendTranscript(this.userTranscript, inputText);
+      this.persistTranscripts();
+      track('transcript_received', {side: 'user'});
+    }
+
+    const outputText = message.serverContent?.outputTranscription?.text;
+    if (outputText) {
+      this.orbTranscript = appendTranscript(this.orbTranscript, outputText);
+      this.persistTranscripts();
+      track('transcript_received', {side: 'orb'});
+    }
+
+    const parts = message.serverContent?.modelTurn?.parts ?? [];
+    for (const part of parts) {
+      const audio = part.inlineData?.data;
+      if (!audio || !this.outputAudioContext || !this.outputNode) {
+        continue;
+      }
+      this.applyEvent({type: 'AUDIO_OUT'});
+      this.nextStartTime = Math.max(
+        this.nextStartTime,
+        this.outputAudioContext.currentTime,
+      );
+      const audioBuffer = await decodeAudioData(
+        decode(audio),
+        this.outputAudioContext,
+        OUTPUT_SAMPLE_RATE,
+        1,
+      );
+      const source = this.outputAudioContext.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(this.outputNode);
+      source.addEventListener('ended', () => {
+        this.sources.delete(source);
+      });
+      try {
+        source.start(this.nextStartTime);
+        this.nextStartTime += audioBuffer.duration;
+        this.sources.add(source);
+      } catch {
+        try {
+          source.start();
+          this.sources.add(source);
+          this.nextStartTime = this.outputAudioContext.currentTime + audioBuffer.duration;
+        } catch {
+          // Drop a late chunk rather than breaking the handler.
+        }
+      }
+    }
+
+    if (message.serverContent?.interrupted) {
+      for (const source of this.sources.values()) {
+        source.stop();
+        this.sources.delete(source);
+      }
+      this.nextStartTime = 0;
+      this.applyEvent({type: 'INTERRUPTED'});
+      track('speech_interrupted');
+    }
+  }
+
+  private sendPcm(pcmData: Float32Array) {
+    if (this.sessionState.phase !== 'listening' && this.sessionState.phase !== 'speaking') {
+      return;
+    }
+    if (!this.session || !isAudible(pcmData)) {
+      return;
+    }
+
+    try {
+      this.session.sendRealtimeInput({media: createBlob(pcmData)});
+    } catch (error) {
+      const raw = error instanceof Error ? error.message : 'Could not send audio.';
+      this.applyEvent({
+        type: 'ERROR',
+        kind: 'session',
+        message: humanizeError('session', raw),
+      });
+    }
+  }
+
+  private async attachCaptureGraph(source: MediaStreamAudioSourceNode) {
+    if (!this.inputAudioContext || !this.inputNode) {
+      throw new Error('Audio is not ready.');
+    }
+
+    source.connect(this.inputNode);
+
+    try {
+      await this.inputAudioContext.audioWorklet.addModule('/pcm-recorder-worklet.js');
+      this.workletNode = new AudioWorkletNode(this.inputAudioContext, 'pcm-recorder');
+      this.workletNode.port.onmessage = (event: MessageEvent<Float32Array>) => {
+        this.sendPcm(event.data);
+      };
+      source.connect(this.workletNode);
+      return;
+    } catch (error) {
+      console.warn('AudioWorklet unavailable, falling back to ScriptProcessor', error);
+    }
+
+    this.scriptProcessorNode = this.inputAudioContext.createScriptProcessor(2048, 1, 1);
+    this.scriptProcessorNode.onaudioprocess = (audioProcessingEvent) => {
+      this.sendPcm(audioProcessingEvent.inputBuffer.getChannelData(0));
+    };
+    source.connect(this.scriptProcessorNode);
+  }
+
+  private async startRecording(event?: Event) {
+    event?.preventDefault();
+    if (this.listenInFlight || !canStartListening(this.sessionState.phase)) {
+      return;
+    }
+
+    this.listenInFlight = true;
+    this.listenCancelRequested = false;
+    this.applyEvent({type: 'LISTEN_START_REQUESTED'});
+    this.ensureAudio();
+    await this.inputAudioContext?.resume();
+    await this.outputAudioContext?.resume();
+    track('mic_requested');
 
     try {
       this.mediaStream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          channelCount: 1,
+        },
         video: false,
       });
-
-      this.updateStatus('Microphone access granted. Starting capture...');
-
-      this.sourceNode = this.inputAudioContext.createMediaStreamSource(
-        this.mediaStream,
-      );
-      this.sourceNode.connect(this.inputNode);
-
-      const bufferSize = 256;
-      this.scriptProcessorNode = this.inputAudioContext.createScriptProcessor(
-        bufferSize,
-        1,
-        1,
-      );
-
-      this.scriptProcessorNode.onaudioprocess = (audioProcessingEvent) => {
-        if (!this.isRecording) return;
-
-        const inputBuffer = audioProcessingEvent.inputBuffer;
-        const pcmData = inputBuffer.getChannelData(0);
-
-        this.session.sendRealtimeInput({media: createBlob(pcmData)});
-      };
-
-      this.sourceNode.connect(this.scriptProcessorNode);
-      this.scriptProcessorNode.connect(this.inputAudioContext.destination);
-
-      this.isRecording = true;
-      this.updateStatus('🔴 Recording... Capturing PCM chunks.');
-    } catch (err) {
-      console.error('Error starting recording:', err);
-      this.updateStatus(`Error: ${err.message}`);
+      track('mic_granted');
+      if (this.listenCancelRequested) {
+        this.mediaStream.getTracks().forEach((track) => track.stop());
+        this.mediaStream = undefined;
+        this.applyEvent({type: 'LISTEN_STOPPED'});
+        return;
+      }
+      this.sourceNode = this.inputAudioContext!.createMediaStreamSource(this.mediaStream);
+      await this.attachCaptureGraph(this.sourceNode);
+      this.listenStartedAt = Date.now();
+      this.applyEvent({type: 'LISTEN_STARTED'});
+      track('listen_started');
+      window.clearTimeout(this.listenCapTimer);
+      this.listenCapTimer = window.setTimeout(() => {
+        this.stopRecording();
+        this.sessionState = {
+          ...this.sessionState,
+          status: 'Talk limit reached. Hold Talk to start a new burst.',
+        };
+      }, MAX_LISTEN_MS);
+    } catch (error) {
+      const raw = error instanceof Error ? error.message : 'Microphone access failed.';
+      track('mic_denied');
+      this.applyEvent({
+        type: 'ERROR',
+        kind: 'mic',
+        message: humanizeError('mic', raw),
+      });
       this.stopRecording();
+    } finally {
+      this.listenInFlight = false;
     }
   }
 
   private stopRecording() {
-    if (!this.isRecording && !this.mediaStream && !this.inputAudioContext)
-      return;
+    this.listenCancelRequested = true;
+    const wasListening =
+      this.sessionState.phase === 'listening' || this.sessionState.phase === 'speaking';
 
-    this.updateStatus('Stopping recording...');
+    window.clearTimeout(this.listenCapTimer);
+    this.workletNode?.disconnect();
+    this.scriptProcessorNode?.disconnect();
+    this.sourceNode?.disconnect();
+    this.workletNode = undefined;
+    this.scriptProcessorNode = undefined;
+    this.sourceNode = undefined;
+    this.mediaStream?.getTracks().forEach((track) => track.stop());
+    this.mediaStream = undefined;
 
-    this.isRecording = false;
-
-    if (this.scriptProcessorNode && this.sourceNode && this.inputAudioContext) {
-      this.scriptProcessorNode.disconnect();
-      this.sourceNode.disconnect();
+    if (wasListening) {
+      this.applyEvent({type: 'LISTEN_STOPPED'});
+      track('listen_stopped', {
+        ms: Date.now() - this.listenStartedAt,
+      });
     }
-
-    this.scriptProcessorNode = null;
-    this.sourceNode = null;
-
-    if (this.mediaStream) {
-      this.mediaStream.getTracks().forEach((track) => track.stop());
-      this.mediaStream = null;
-    }
-
-    this.updateStatus('Recording stopped. Click Start to begin again.');
   }
 
-  private reset() {
+  private async reconnect() {
+    this.stopRecording();
+    this.editingKey = false;
+    this.applyEvent({type: 'RETRY'});
+    if (this.authMode === 'hosted') {
+      const hosted = await fetchHostedCredential();
+      if (hosted.mode !== 'hosted') {
+        this.applyEvent({
+          type: 'ERROR',
+          kind: 'connect',
+          message:
+            hosted.mode === 'error'
+              ? hosted.message
+              : 'Hosted session expired. Reconnect or paste a Gemini key.',
+        });
+        return;
+      }
+      this.apiKey = hosted.token;
+      this.useAlphaLiveApi = true;
+      await this.initClient();
+      return;
+    }
+    await this.initSession();
+  }
+
+  private async saveApiKey(event: Event) {
+    event.preventDefault();
+    if (this.connectInFlight) {
+      return;
+    }
+
+    const validated = validateApiKey(this.keyDraft);
+    if (validated.ok === false) {
+      this.applyEvent({
+        type: 'ERROR',
+        kind: 'key',
+        message: validated.message,
+      });
+      this.editingKey = true;
+      return;
+    }
+
+    this.connectInFlight = true;
+    this.apiKey = validated.key;
+    this.keyDraft = '';
+    this.editingKey = false;
+    this.authMode = 'byo';
+    this.useAlphaLiveApi = false;
+    this.applyEvent({type: 'KEY_SUBMITTED'});
+    try {
+      await this.initClient();
+    } finally {
+      this.connectInFlight = false;
+    }
+  }
+
+  private clearKey() {
+    this.stopRecording();
     this.session?.close();
-    this.initSession();
-    this.updateStatus('Session cleared.');
+    this.session = undefined;
+    this.client = undefined;
+    this.apiKey = '';
+    this.keyDraft = '';
+    this.editingKey = true;
+    this.applyEvent({type: 'KEY_CLEARED'});
+  }
+
+  private updateKeyDraft(event: Event) {
+    this.keyDraft = (event.target as HTMLInputElement).value;
+  }
+
+  private exportChat() {
+    const blob = new Blob(
+      [exportTranscript({user: this.userTranscript, orb: this.orbTranscript})],
+      {type: 'text/plain'},
+    );
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'taskkorb-transcript.txt';
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
+  private clearChat() {
+    if (!window.confirm('Clear this conversation from this browser?')) {
+      return;
+    }
+    this.userTranscript = '';
+    this.orbTranscript = '';
+    clearStoredTranscript();
+  }
+
+  private onTalkKeydown(event: KeyboardEvent) {
+    if (event.code === 'Space' || event.key === ' ') {
+      event.preventDefault();
+      void this.startRecording();
+    }
+  }
+
+  private onTalkKeyup(event: KeyboardEvent) {
+    if (event.code === 'Space' || event.key === ' ') {
+      event.preventDefault();
+      this.stopRecording();
+    }
   }
 
   render() {
+    const {phase, status, error} = this.sessionState;
+    const listening = phase === 'listening' || phase === 'speaking';
+    const stored = this.userTranscript || this.orbTranscript ? {user: this.userTranscript, orb: this.orbTranscript} : EMPTY_TRANSCRIPT;
+
     return html`
       <div>
+        ${this.showKeyGate
+          ? html`
+              <form class="key-gate" @submit=${this.saveApiKey}>
+                <div class="key-card">
+                  <h1>${PRODUCT_NAME}</h1>
+                  <p>${PRODUCT_TAGLINE}</p>
+                  ${this.authMode === 'unknown'
+                    ? html`<p>Opening session…</p>`
+                    : html`
+                        <p>
+                          Local testing only. The key stays in this tab’s memory
+                          and is never written to disk. Audio is sent to Google
+                          Gemini while you hold Talk.
+                        </p>
+                        ${error
+                          ? html`<p class="error" role="alert">${error}</p>`
+                          : ''}
+                        <input
+                          type="password"
+                          autocomplete="off"
+                          maxlength=${MAX_API_KEY_LENGTH}
+                          placeholder="Gemini API key"
+                          aria-label="Gemini API key"
+                          .value=${this.keyDraft}
+                          @input=${this.updateKeyDraft} />
+                        <button type="submit" ?disabled=${this.connectInFlight}>
+                          ${this.connectInFlight ? 'Connecting…' : 'Connect'}
+                        </button>
+                        ${this.apiKey
+                          ? html`<button
+                              type="button"
+                              @click=${() => {
+                                this.editingKey = false;
+                              }}>
+                              Cancel
+                            </button>`
+                          : ''}
+                      `}
+                </div>
+              </form>
+            `
+          : ''}
+        <div class="transcript" aria-live="polite">
+          ${stored.user
+            ? html`<p><strong>You:</strong> ${stored.user}</p>`
+            : ''}
+          ${stored.orb
+            ? html`<p><strong>Orb:</strong> ${stored.orb}</p>`
+            : ''}
+        </div>
         <div class="controls">
           <button
-            id="resetButton"
-            @click=${this.reset}
-            ?disabled=${this.isRecording}>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              height="40px"
-              viewBox="0 -960 960 960"
-              width="40px"
-              fill="#ffffff">
-              <path
-                d="M480-160q-134 0-227-93t-93-227q0-134 93-227t227-93q69 0 132 28.5T720-690v-110h80v280H520v-80h168q-32-56-87.5-88T480-720q-100 0-170 70t-70 170q0 100 70 170t170 70q77 0 139-44t87-116h84q-28 106-114 173t-196 67Z" />
-            </svg>
+            type="button"
+            aria-label="Change API key"
+            @click=${this.clearKey}>
+            Change key
           </button>
           <button
-            id="startButton"
-            @click=${this.startRecording}
-            ?disabled=${this.isRecording}>
-            <svg
-              viewBox="0 0 100 100"
-              width="32px"
-              height="32px"
-              fill="#c80000"
-              xmlns="http://www.w3.org/2000/svg">
-              <circle cx="50" cy="50" r="50" />
-            </svg>
+            type="button"
+            aria-label="Reconnect"
+            @click=${this.reconnect}
+            ?disabled=${!canRetry(phase) && phase !== 'ready'}>
+            Reconnect
           </button>
           <button
-            id="stopButton"
-            @click=${this.stopRecording}
-            ?disabled=${!this.isRecording}>
-            <svg
-              viewBox="0 0 100 100"
-              width="32px"
-              height="32px"
-              fill="#000000"
-              xmlns="http://www.w3.org/2000/svg">
-              <rect x="0" y="0" width="100" height="100" rx="15" />
-            </svg>
+            type="button"
+            data-kind="talk"
+            aria-label="Hold to talk"
+            aria-pressed=${listening}
+            title="Hold to talk"
+            @pointerdown=${this.startRecording}
+            @pointerup=${this.stopRecording}
+            @pointerleave=${this.stopRecording}
+            @pointercancel=${this.stopRecording}
+            @keydown=${this.onTalkKeydown}
+            @keyup=${this.onTalkKeyup}
+            ?disabled=${listening ? false : !canStartListening(phase)}>
+            Talk
+          </button>
+          <button
+            type="button"
+            aria-label="Export transcript"
+            @click=${this.exportChat}
+            ?disabled=${!this.userTranscript && !this.orbTranscript}>
+            Export
+          </button>
+          <button
+            type="button"
+            aria-label="Clear transcript"
+            @click=${this.clearChat}
+            ?disabled=${!this.userTranscript && !this.orbTranscript}>
+            Clear
           </button>
         </div>
-
-        <div id="status"> ${this.error} </div>
+        <p class="privacy">
+          Audio leaves this device only while Talk is held. This is not a hosted
+          production service.
+        </p>
+        <div id="status" role="status" data-kind=${error ? 'error' : 'info'}>
+          ${error || status}
+        </div>
         <gdm-live-audio-visuals-3d
           .inputNode=${this.inputNode}
           .outputNode=${this.outputNode}></gdm-live-audio-visuals-3d>

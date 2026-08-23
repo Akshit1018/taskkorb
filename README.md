@@ -1,20 +1,32 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Taskkorb
 
-# Run and deploy your AI Studio app
+Speak, and the orb answers.
 
-This contains everything you need to run your app locally.
+This started as a Google AI Studio Audio Orb export. It is now a browser voice companion: Gemini Live Audio in, spoken reply out, 3D orb as the surface.
 
-View your app in AI Studio: https://ai.studio/apps/drive/1INhjLtoR8lXnkGmG4t41Z4Fh-hWOT2E-
+## What this is not
 
-## Run Locally
+This repository is not a career, resume, interview, or job-tracking product. Those systems do not exist here.
 
-**Prerequisites:**  Node.js
+## Run locally
 
+1. `npm install`
+2. Copy `.env.example` to `.env.local`
+3. Optional: set server-only `GEMINI_API_KEY` so the app mints a short-lived Live token and testers do not paste a key
+4. Optional: set `PREVIEW_PASSWORD` to lock public preview URLs
+5. `npm run dev`
+6. Open http://localhost:3000
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+Without a server key, paste a Gemini key in the UI. That value stays in tab memory only and is never written to disk or the JS bundle. This is still test-only.
+
+## Checks
+
+- `npm test`
+- `npm run typecheck`
+- `npm run build`
+
+## Product memory
+
+Start with [docs/PRODUCT_VISION.md](docs/PRODUCT_VISION.md).
+
+Adversarial inspection (2026-08-23): [docs/red-team/RED_TEAM_FINDINGS.md](docs/red-team/RED_TEAM_FINDINGS.md).
