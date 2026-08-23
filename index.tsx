@@ -10,11 +10,28 @@ import {customElement, state} from 'lit/decorators.js';
 import {createBlob, decode, decodeAudioData} from './utils';
 import './visual-3d';
 
+const API_KEY_STORAGE = 'GEMINI_API_KEY';
+
+function readStoredApiKey(): string {
+  const fromEnv = process.env.GEMINI_API_KEY;
+  if (fromEnv) {
+    return fromEnv;
+  }
+
+  try {
+    return sessionStorage.getItem(API_KEY_STORAGE) ?? '';
+  } catch {
+    return '';
+  }
+}
+
 @customElement('gdm-live-audio')
 export class GdmLiveAudio extends LitElement {
   @state() isRecording = false;
   @state() status = '';
   @state() error = '';
+  @state() apiKey = readStoredApiKey();
+  @state() keyDraft = '';
 
   private client: GoogleGenAI;
   private session: Session;
@@ -74,11 +91,70 @@ export class GdmLiveAudio extends LitElement {
         display: none;
       }
     }
+
+    .key-gate {
+      position: absolute;
+      inset: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(8, 6, 12, 0.72);
+      padding: 24px;
+    }
+
+    .key-card {
+      width: min(420px, 100%);
+      color: white;
+      text-align: center;
+      font-family: Inter, system-ui, sans-serif;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 20px;
+      padding: 24px;
+      backdrop-filter: blur(16px);
+    }
+
+    .key-card h1 {
+      margin: 0 0 8px;
+      font-size: 22px;
+    }
+
+    .key-card p {
+      margin: 0 0 16px;
+      color: rgba(255, 255, 255, 0.72);
+      line-height: 1.4;
+    }
+
+    .key-card input {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.28);
+      color: white;
+      padding: 12px 14px;
+      font-size: 16px;
+    }
+
+    .key-card button {
+      margin-top: 12px;
+      width: 100%;
+      height: 48px;
+      border: 0;
+      border-radius: 12px;
+      background: white;
+      color: #100c14;
+      font-weight: 600;
+      cursor: pointer;
+    }
   `;
 
   constructor() {
     super();
-    this.initClient();
+    if (this.apiKey) {
+      this.initClient();
+    }
   }
 
   private initAudio() {
@@ -89,7 +165,7 @@ export class GdmLiveAudio extends LitElement {
     this.initAudio();
 
     this.client = new GoogleGenAI({
-      apiKey: process.env.GEMINI_API_KEY,
+      apiKey: this.apiKey,
     });
 
     this.outputNode.connect(this.outputAudioContext.destination);
@@ -252,9 +328,50 @@ export class GdmLiveAudio extends LitElement {
     this.updateStatus('Session cleared.');
   }
 
+  private saveApiKey(event: Event) {
+    event.preventDefault();
+    const nextKey = this.keyDraft.trim();
+    if (!nextKey) {
+      this.updateError('Gemini API key is required.');
+      return;
+    }
+
+    try {
+      sessionStorage.setItem(API_KEY_STORAGE, nextKey);
+    } catch {
+      // Session storage can be blocked; the in-memory key is enough for this tab.
+    }
+
+    this.apiKey = nextKey;
+    this.error = '';
+    this.initClient();
+  }
+
   render() {
     return html`
       <div>
+        ${this.apiKey
+          ? ''
+          : html`
+              <form class="key-gate" @submit=${this.saveApiKey}>
+                <div class="key-card">
+                  <h1>Audio Orb</h1>
+                  <p>
+                    Test ke liye apni Gemini API key paste karo. Key is tab
+                    mein hi rehti hai.
+                  </p>
+                  <input
+                    type="password"
+                    autocomplete="off"
+                    placeholder="GEMINI_API_KEY"
+                    .value=${this.keyDraft}
+                    @input=${(event: Event) => {
+                      this.keyDraft = (event.target as HTMLInputElement).value;
+                    }} />
+                  <button type="submit">Start test</button>
+                </div>
+              </form>
+            `}
         <div class="controls">
           <button
             id="resetButton"
