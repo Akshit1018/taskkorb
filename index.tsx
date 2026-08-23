@@ -651,7 +651,7 @@ export class GdmLiveAudio extends LitElement {
     }
 
     const validated = validateApiKey(this.keyDraft);
-    if (!validated.ok) {
+    if (validated.ok === false) {
       this.applyEvent({
         type: 'ERROR',
         kind: 'key',
