@@ -22,9 +22,9 @@ describe('reconnect policy', () => {
     );
   });
 
-  it('keeps the latest resumable handle and drops a non-resumable one', () => {
+  it('keeps the last good handle while the model is generating', () => {
     expect(nextResumptionHandle(undefined, {resumable: true, newHandle: 'h1'})).toBe('h1');
-    expect(nextResumptionHandle('h1', {resumable: false, newHandle: ''})).toBeUndefined();
+    expect(nextResumptionHandle('h1', {resumable: false, newHandle: ''})).toBe('h1');
     expect(nextResumptionHandle('h1', {resumable: true})).toBe('h1');
   });
 });

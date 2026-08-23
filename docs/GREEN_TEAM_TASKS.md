@@ -38,4 +38,9 @@ Live Gemini quality remains EXTERNAL_DEPENDENCY_REQUIRED / UNVERIFIED.
 - Competitors still start from an account. We did not beat them and should not claim we did.
 - `/api/health` is public by design. It must stay secret-free.
 
+Critic loop 2 (code review, no live Gemini):
+
+- VERIFIED and fixed: keep last handle when `resumable=false`; GoAway no longer kills the socket; hosted connect failures stay `connect` not paste-key; remint failure clears `reconnectArmed`; AUDIO_OUT from `ready` so the orb tints after release; Escape restores Talk focus.
+- Still open: shared-password mint, `uses:1` vs two-model loop, concurrent decode race, durable host, live E2E.
+
 Valid leftover work: user-auth in front of mint, durable host, live E2E. Not leftover: career OS, camera, replacing Lit.

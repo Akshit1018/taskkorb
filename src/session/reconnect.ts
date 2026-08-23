@@ -34,7 +34,7 @@ export function nextResumptionHandle(
     return current;
   }
   if (update.resumable === false) {
-    return undefined;
+    return current;
   }
   if (typeof update.newHandle === 'string' && update.newHandle) {
     return update.newHandle;

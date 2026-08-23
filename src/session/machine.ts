@@ -17,7 +17,7 @@ export type SessionEvent =
   | {type: 'LISTEN_START_REQUESTED'}
   | {type: 'LISTEN_STARTED'}
   | {type: 'AUDIO_OUT'}
-  | {type: 'INTERRUPTED'}
+  | {type: 'INTERRUPTED'; holding?: boolean}
   | {type: 'LISTEN_STOPPED'}
   | {type: 'LISTEN_CAPPED'}
   | {type: 'ERROR'; message: string; kind: ErrorKind}
@@ -102,7 +102,11 @@ export function reduceSession(
         error: '',
       };
     case 'AUDIO_OUT':
-      if (state.phase !== 'listening' && state.phase !== 'speaking') {
+      if (
+        state.phase !== 'listening' &&
+        state.phase !== 'speaking' &&
+        state.phase !== 'ready'
+      ) {
         return state;
       }
       return {
@@ -114,10 +118,17 @@ export function reduceSession(
       if (state.phase !== 'speaking') {
         return state;
       }
+      if (event.holding === false) {
+        return {
+          phase: 'ready',
+          status: 'Interrupted. Hold Talk to continue.',
+          error: '',
+        };
+      }
       return {
-        ...state,
         phase: 'listening',
         status: 'Interrupted. Keep talking.',
+        error: '',
       };
     case 'LISTEN_STOPPED':
       if (state.phase === 'locked' || state.phase === 'connecting') {

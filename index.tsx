@@ -98,6 +98,7 @@ export class GdmLiveAudio extends LitElement {
   private resumptionHandle?: string;
   private lastFocusedReady = false;
   private useAlphaLiveApi = false;
+  private playbackChain: Promise<void> = Promise.resolve();
 
   static styles = css`
     :host {
@@ -547,33 +548,21 @@ export class GdmLiveAudio extends LitElement {
     }
 
     const raw = lastError instanceof Error ? lastError.message : 'Could not open a live session.';
+    const kind = this.authMode === 'hosted' ? 'connect' : 'key';
     this.applyEvent({
       type: 'ERROR',
-      kind: 'key',
-      message: humanizeError('key', raw),
+      kind,
+      message: humanizeError(kind, raw),
     });
-    this.editingKey = true;
+    if (this.authMode !== 'hosted') {
+      this.editingKey = true;
+    }
     track('session_error', {reason: 'connect'});
   }
 
   private async handleLiveMessage(message: LiveServerMessage) {
     if (message.goAway) {
       track('session_go_away');
-      const autoRetry = shouldAutoReconnect({
-        userClosed: this.userClosed,
-        attempt: this.reconnectAttempts,
-        errorKind: this.sessionState.errorKind,
-      });
-      this.applyEvent({
-        type: 'CLOSED',
-        reason: 'server asked to resume',
-        autoRetry,
-      });
-      this.connectGeneration += 1;
-      if (autoRetry) {
-        this.armAutoReconnect();
-      }
-      return;
     }
 
     if (message.sessionResumptionUpdate) {
@@ -606,39 +595,10 @@ export class GdmLiveAudio extends LitElement {
     const parts = message.serverContent?.modelTurn?.parts ?? [];
     for (const part of parts) {
       const audio = part.inlineData?.data;
-      if (!audio || !this.outputAudioContext || !this.outputNode) {
+      if (!audio) {
         continue;
       }
-      this.applyEvent({type: 'AUDIO_OUT'});
-      this.nextStartTime = Math.max(
-        this.nextStartTime,
-        this.outputAudioContext.currentTime,
-      );
-      const audioBuffer = await decodeAudioData(
-        decode(audio),
-        this.outputAudioContext,
-        OUTPUT_SAMPLE_RATE,
-        1,
-      );
-      const source = this.outputAudioContext.createBufferSource();
-      source.buffer = audioBuffer;
-      source.connect(this.outputNode);
-      source.addEventListener('ended', () => {
-        this.sources.delete(source);
-      });
-      try {
-        source.start(this.nextStartTime);
-        this.nextStartTime += audioBuffer.duration;
-        this.sources.add(source);
-      } catch {
-        try {
-          source.start();
-          this.sources.add(source);
-          this.nextStartTime = this.outputAudioContext.currentTime + audioBuffer.duration;
-        } catch {
-          // Drop a late chunk rather than breaking the handler.
-        }
-      }
+      this.enqueuePlayback(audio);
     }
 
     if (message.serverContent?.interrupted) {
@@ -647,8 +607,50 @@ export class GdmLiveAudio extends LitElement {
         this.sources.delete(source);
       }
       this.nextStartTime = 0;
-      this.applyEvent({type: 'INTERRUPTED'});
+      this.applyEvent({type: 'INTERRUPTED', holding: Boolean(this.mediaStream)});
       track('speech_interrupted');
+    }
+  }
+
+  private enqueuePlayback(audio: string) {
+    this.playbackChain = this.playbackChain
+      .then(() => this.playDecoded(audio))
+      .catch(() => undefined);
+  }
+
+  private async playDecoded(audio: string) {
+    if (!this.outputAudioContext || !this.outputNode) {
+      return;
+    }
+    this.applyEvent({type: 'AUDIO_OUT'});
+    this.nextStartTime = Math.max(
+      this.nextStartTime,
+      this.outputAudioContext.currentTime,
+    );
+    const audioBuffer = await decodeAudioData(
+      decode(audio),
+      this.outputAudioContext,
+      OUTPUT_SAMPLE_RATE,
+      1,
+    );
+    const source = this.outputAudioContext.createBufferSource();
+    source.buffer = audioBuffer;
+    source.connect(this.outputNode);
+    source.addEventListener('ended', () => {
+      this.sources.delete(source);
+    });
+    try {
+      source.start(this.nextStartTime);
+      this.nextStartTime += audioBuffer.duration;
+      this.sources.add(source);
+    } catch {
+      try {
+        source.start();
+        this.sources.add(source);
+        this.nextStartTime = this.outputAudioContext.currentTime + audioBuffer.duration;
+      } catch {
+        // Drop a late chunk rather than breaking the handler.
+      }
     }
   }
 
@@ -816,6 +818,7 @@ export class GdmLiveAudio extends LitElement {
   private onWindowKey = (event: KeyboardEvent) => {
     if (this.moreOpen && isSheetDismissKey(event.key)) {
       this.moreOpen = false;
+      this.lastFocusedReady = false;
     }
   };
 
@@ -834,6 +837,7 @@ export class GdmLiveAudio extends LitElement {
     });
     if (pathDismissesMore(path)) {
       this.moreOpen = false;
+      this.lastFocusedReady = false;
     }
   };
 
@@ -846,6 +850,7 @@ export class GdmLiveAudio extends LitElement {
     if (this.authMode === 'hosted') {
       const hosted = await fetchHostedCredential();
       if (hosted.mode !== 'hosted') {
+        this.reconnectArmed = false;
         this.applyEvent({
           type: 'ERROR',
           kind: 'connect',
@@ -1182,33 +1187,40 @@ export class GdmLiveAudio extends LitElement {
               </div>
             `
           : ''}
-        <div class="controls" role="toolbar" aria-label="Talk">
-          <button
-            type="button"
-            data-kind="talk"
-            aria-label=${listening ? `Hold to talk, ${remaining} remaining` : 'Hold to talk'}
-            aria-pressed=${listening}
-            title=${insecure ? insecureMicMessage() : 'Hold to talk'}
-            @pointerdown=${this.onTalkPointerDown}
-            @pointerup=${this.onTalkPointerUp}
-            @pointercancel=${this.onTalkPointerUp}
-            @keydown=${this.onTalkKeydown}
-            @keyup=${this.onTalkKeyup}
-            ?disabled=${talkDisabled}>
-            Talk
-            ${listening ? html`<span class="talk-time">${remaining}</span>` : ''}
-          </button>
-          <button
-            type="button"
-            data-kind="more"
-            aria-expanded=${this.moreOpen}
-            aria-label="More controls"
-            @click=${() => {
-              this.moreOpen = !this.moreOpen;
-            }}>
-            More
-          </button>
-        </div>
+        ${this.showKeyGate
+          ? ''
+          : html`
+              <div class="controls" role="toolbar" aria-label="Talk">
+                <button
+                  type="button"
+                  data-kind="talk"
+                  aria-label=${listening ? `Hold to talk, ${remaining} remaining` : 'Hold to talk'}
+                  aria-pressed=${listening}
+                  title=${insecure ? insecureMicMessage() : 'Hold to talk'}
+                  @pointerdown=${this.onTalkPointerDown}
+                  @pointerup=${this.onTalkPointerUp}
+                  @pointercancel=${this.onTalkPointerUp}
+                  @keydown=${this.onTalkKeydown}
+                  @keyup=${this.onTalkKeyup}
+                  ?disabled=${talkDisabled}>
+                  Talk
+                  ${listening ? html`<span class="talk-time">${remaining}</span>` : ''}
+                </button>
+                <button
+                  type="button"
+                  data-kind="more"
+                  aria-expanded=${this.moreOpen}
+                  aria-label="More controls"
+                  @click=${() => {
+                    this.moreOpen = !this.moreOpen;
+                    if (!this.moreOpen) {
+                      this.lastFocusedReady = false;
+                    }
+                  }}>
+                  More
+                </button>
+              </div>
+            `}
         <p class="privacy">
           ${insecure
             ? insecureMicMessage()

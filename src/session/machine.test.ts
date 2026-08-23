@@ -84,6 +84,16 @@ describe('session machine', () => {
     expect(reduceSession(failed, {type: 'LISTEN_STOPPED'}).phase).toBe('error');
   });
 
+  it('tints speaking when the orb answers after Talk is released', () => {
+    const connecting = reduceSession(INITIAL_SESSION, {type: 'KEY_SUBMITTED'});
+    const ready = reduceSession(connecting, {type: 'OPENED'});
+    const speaking = reduceSession(ready, {type: 'AUDIO_OUT'});
+    const interrupted = reduceSession(speaking, {type: 'INTERRUPTED', holding: false});
+
+    expect(speaking.phase).toBe('speaking');
+    expect(interrupted.phase).toBe('ready');
+  });
+
   it('marks an unexpected close as auto-retrying, then reconnects', () => {
     const connecting = reduceSession(INITIAL_SESSION, {type: 'KEY_SUBMITTED'});
     const ready = reduceSession(connecting, {type: 'OPENED'});

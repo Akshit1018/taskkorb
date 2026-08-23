@@ -18,7 +18,7 @@ export function humanizeError(kind: ErrorKind, raw: string): string {
   }
 
   if (text.includes('notfound') || text.includes('404') || text.includes('model')) {
-    return 'The live audio model is unavailable. Reconnect to try the fallback model.';
+    return 'The live audio model is unavailable. Reconnect to try again.';
   }
 
   if (text.includes('429') || text.includes('wait a moment') || text.includes('too many')) {
