@@ -5,14 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/check-dist-secrets.mjs",
     "preview": "vite preview",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check:secrets": "node scripts/check-dist-secrets.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.15.0",
-    "@lit/context": "^1.1.5",
     "lit": "^3.3.0",
     "three": "^0.176.0"
   },

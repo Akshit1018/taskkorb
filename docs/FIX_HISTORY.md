@@ -1,5 +1,13 @@
 # Fix History
 
+## 2026-08-23 red-team P0/P1
+
+- Symptom: Browser Gemini key leaked via sessionStorage and Vite `define`; bad keys trapped users; live loop had races and unlabeled controls.
+- Root Cause: AI Studio demo treated the long-lived key as product auth and hid failures.
+- Fix: Memory-only key, no client `define`, dist secret scan, change-key UI, hold-to-talk, silence gate, play all audio parts, serialized connect/listen, human errors, CSP, preview password gate, transcript cap/export.
+- Verification: unit tests, typecheck, production build + secret scan.
+- Related: ephemeral Google tokens remain EXTERNAL_DEPENDENCY_REQUIRED.
+
 ## Silent live-session failure
 
 - Symptom: orb loaded, talking did nothing, no useful status

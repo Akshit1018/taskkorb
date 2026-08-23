@@ -64,7 +64,20 @@ Canonical IDs live in the specialist files:
 - [AI_FINDINGS.md](./AI_FINDINGS.md) RT-080–085
 - [SECURITY_FINDINGS.md](./SECURITY_FINDINGS.md) RT-090–095
 
-Status: all **DISCOVERED**. None **RESOLVED**.
+Status after 2026-08-23 remediation (see FIX_HISTORY):
+
+| ID | Status |
+| --- | --- |
+| RT-071 | RESOLVED — Vite no longer inlines GEMINI_API_KEY; `npm run build` scans dist |
+| RT-051 | RESOLVED — key is memory-only, not sessionStorage |
+| RT-011 RT-012 | RESOLVED — change-key + human errors + retry |
+| RT-010 RT-035 | RESOLVED — labeled Talk + focus-visible |
+| RT-023 RT-024 RT-025 | RESOLVED — all parts, connect generation, listen lock |
+| RT-037 RT-083 | PARTIALLY RESOLVED — silence gate + 3 min talk cap + hold-to-talk |
+| RT-050 | PARTIALLY RESOLVED — transcript cap/export/local persist, no account history |
+| RT-091 RT-092 RT-093 | PARTIALLY RESOLVED — CSP, privacy copy, optional PREVIEW_PASSWORD |
+| RT-090 RT-002 RT-040 | PARTIALLY RESOLVED — worst leaks closed; ephemeral token backend still required |
+| RT-001 RT-005 RT-080 | DISCOVERED — market/product, not a code patch |
 
 ---
 

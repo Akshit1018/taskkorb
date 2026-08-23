@@ -7,22 +7,28 @@ export type SessionPhase =
   | 'error'
   | 'closed';
 
+export type ErrorKind = 'key' | 'mic' | 'connect' | 'session' | 'unknown';
+
 export type SessionEvent =
   | {type: 'KEY_SUBMITTED'}
+  | {type: 'KEY_CLEARED'}
   | {type: 'CONNECT_STARTED'}
   | {type: 'OPENED'}
+  | {type: 'LISTEN_START_REQUESTED'}
   | {type: 'LISTEN_STARTED'}
   | {type: 'AUDIO_OUT'}
   | {type: 'INTERRUPTED'}
   | {type: 'LISTEN_STOPPED'}
-  | {type: 'ERROR'; message: string}
+  | {type: 'ERROR'; message: string; kind: ErrorKind}
   | {type: 'CLOSED'; reason: string}
-  | {type: 'RESET'};
+  | {type: 'RESET'}
+  | {type: 'RETRY'};
 
 export interface SessionSnapshot {
   phase: SessionPhase;
   status: string;
   error: string;
+  errorKind?: ErrorKind;
 }
 
 export const INITIAL_SESSION: SessionSnapshot = {
@@ -32,7 +38,19 @@ export const INITIAL_SESSION: SessionSnapshot = {
 };
 
 export function canStartListening(phase: SessionPhase): boolean {
-  return phase === 'ready' || phase === 'speaking';
+  return phase === 'ready';
+}
+
+export function canRetry(phase: SessionPhase): boolean {
+  return phase === 'error' || phase === 'closed';
+}
+
+function connectingState(): SessionSnapshot {
+  return {
+    phase: 'connecting',
+    status: 'Connecting to the orb…',
+    error: '',
+  };
 }
 
 export function reduceSession(
@@ -40,56 +58,90 @@ export function reduceSession(
   event: SessionEvent,
 ): SessionSnapshot {
   switch (event.type) {
+    case 'KEY_CLEARED':
+      return INITIAL_SESSION;
     case 'KEY_SUBMITTED':
+      return connectingState();
     case 'CONNECT_STARTED':
     case 'RESET':
-      return {
-        phase: 'connecting',
-        status: 'Connecting to the orb…',
-        error: '',
-      };
+      if (state.phase === 'locked') {
+        return state;
+      }
+      return connectingState();
+    case 'RETRY':
+      if (state.phase !== 'error' && state.phase !== 'closed') {
+        return state;
+      }
+      return connectingState();
     case 'OPENED':
+      if (state.phase !== 'connecting' && state.phase !== 'ready') {
+        return state;
+      }
       return {
         phase: 'ready',
-        status: 'Connected. Tap the red button and speak.',
+        status: 'Connected. Hold Talk and speak.',
         error: '',
       };
+    case 'LISTEN_START_REQUESTED':
+      if (state.phase !== 'ready') {
+        return state;
+      }
+      return {
+        ...state,
+        status: 'Requesting microphone access…',
+      };
     case 'LISTEN_STARTED':
+      if (state.phase !== 'ready' && state.phase !== 'listening') {
+        return state;
+      }
       return {
         phase: 'listening',
-        status: 'Listening…',
+        status: 'Listening… Release Talk to pause.',
         error: '',
       };
     case 'AUDIO_OUT':
+      if (state.phase !== 'listening' && state.phase !== 'speaking') {
+        return state;
+      }
       return {
         ...state,
-        phase: state.phase === 'listening' ? 'speaking' : state.phase,
-        status: state.phase === 'listening' ? 'The orb is speaking…' : state.status,
+        phase: 'speaking',
+        status: 'The orb is speaking…',
       };
     case 'INTERRUPTED':
+      if (state.phase !== 'speaking') {
+        return state;
+      }
       return {
         ...state,
-        phase: state.phase === 'speaking' ? 'listening' : state.phase,
+        phase: 'listening',
         status: 'Interrupted. Keep talking.',
       };
     case 'LISTEN_STOPPED':
+      if (state.phase === 'locked' || state.phase === 'connecting') {
+        return state;
+      }
+      if (state.phase === 'error') {
+        return state;
+      }
       return {
-        phase: state.phase === 'error' ? 'error' : 'ready',
-        status: 'Paused. Tap the red button to speak again.',
-        error: state.error,
+        phase: 'ready',
+        status: 'Paused. Hold Talk to speak again.',
+        error: '',
       };
     case 'ERROR':
       return {
         phase: 'error',
         status: 'Something went wrong.',
         error: event.message,
+        errorKind: event.kind,
       };
     case 'CLOSED':
       return {
         phase: 'closed',
         status: event.reason
           ? `Disconnected: ${event.reason}`
-          : 'Disconnected. Tap reset to reconnect.',
+          : 'Disconnected. Tap Reconnect.',
         error: '',
       };
     default: {

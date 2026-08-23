@@ -12,12 +12,8 @@ import {customElement, property} from 'lit/decorators.js';
 import {Analyser} from './analyser';
 
 import * as THREE from 'three';
-import {EXRLoader} from 'three/addons/loaders/EXRLoader.js';
 import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
 import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
-import {ShaderPass} from 'three/addons/postprocessing/ShaderPass.js';
-import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
-import {FXAAShader} from 'three/addons/shaders/FXAAShader.js';
 import {fs as backdropFS, vs as backdropVS} from './backdrop-shader';
 import {vs as sphereVS} from './sphere-shader';
 
@@ -64,6 +60,10 @@ export class GdmLiveAudioVisuals3D extends LitElement {
   }
 
   private canvas!: HTMLCanvasElement;
+  private frame = 0;
+  private reduceMotion = false;
+  private onWindowResize?: () => void;
+  private onVisibility?: () => void;
 
   static styles = css`
     canvas {
@@ -113,26 +113,9 @@ export class GdmLiveAudioVisuals3D extends LitElement {
       antialias: !true,
     });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(window.devicePixelRatio / 1);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1));
 
-    const geometry = new THREE.IcosahedronGeometry(1, 10);
-
-    new EXRLoader().load(
-      '/piz_compressed.exr',
-      (texture: THREE.Texture) => {
-        texture.mapping = THREE.EquirectangularReflectionMapping;
-        const exrCubeRenderTarget = pmremGenerator.fromEquirectangular(texture);
-        sphereMaterial.envMap = exrCubeRenderTarget.texture;
-        sphere.visible = true;
-      },
-      undefined,
-      () => {
-        sphere.visible = true;
-      },
-    );
-
-    const pmremGenerator = new THREE.PMREMGenerator(renderer);
-    pmremGenerator.compileEquirectangularShader();
+    const geometry = new THREE.IcosahedronGeometry(1, 6);
 
     const sphereMaterial = new THREE.MeshStandardMaterial({
       color: 0x000010,
@@ -154,26 +137,13 @@ export class GdmLiveAudioVisuals3D extends LitElement {
 
     const sphere = new THREE.Mesh(geometry, sphereMaterial);
     scene.add(sphere);
-    sphere.visible = false;
+    sphere.visible = true;
 
     this.sphere = sphere;
 
     const renderPass = new RenderPass(scene, camera);
-
-    const bloomPass = new UnrealBloomPass(
-      new THREE.Vector2(window.innerWidth, window.innerHeight),
-      5,
-      0.5,
-      0,
-    );
-
-    const fxaaPass = new ShaderPass(FXAAShader);
-
     const composer = new EffectComposer(renderer);
     composer.addPass(renderPass);
-    // composer.addPass(fxaaPass);
-    composer.addPass(bloomPass);
-
     this.composer = composer;
 
     function onWindowResize() {
@@ -185,20 +155,39 @@ export class GdmLiveAudioVisuals3D extends LitElement {
       backdrop.material.uniforms.resolution.value.set(w * dPR, h * dPR);
       renderer.setSize(w, h);
       composer.setSize(w, h);
-      fxaaPass.material.uniforms['resolution'].value.set(
-        1 / (w * dPR),
-        1 / (h * dPR),
-      );
     }
 
+    this.onWindowResize = onWindowResize;
     window.addEventListener('resize', onWindowResize);
     onWindowResize();
 
+    this.onVisibility = () => {
+      if (document.hidden) {
+        cancelAnimationFrame(this.frame);
+        return;
+      }
+      this.animation();
+    };
+    document.addEventListener('visibilitychange', this.onVisibility);
     this.animation();
   }
 
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    if (this.onWindowResize) {
+      window.removeEventListener('resize', this.onWindowResize);
+    }
+    if (this.onVisibility) {
+      document.removeEventListener('visibilitychange', this.onVisibility);
+    }
+    cancelAnimationFrame(this.frame);
+  }
+
   private animation() {
-    requestAnimationFrame(() => this.animation());
+    if (document.hidden) {
+      return;
+    }
+    this.frame = requestAnimationFrame(() => this.animation());
 
     if (!this.composer || !this.backdrop || !this.sphere) {
       return;
@@ -230,16 +219,18 @@ export class GdmLiveAudioVisuals3D extends LitElement {
       this.rotation.y += (dt * f * 0.25 * input[2]) / 255;
       this.rotation.y += (dt * f * 0.25 * output[2]) / 255;
 
-      const euler = new THREE.Euler(
-        this.rotation.x,
-        this.rotation.y,
-        this.rotation.z,
-      );
-      const quaternion = new THREE.Quaternion().setFromEuler(euler);
-      const vector = new THREE.Vector3(0, 0, 5);
-      vector.applyQuaternion(quaternion);
-      this.camera.position.copy(vector);
-      this.camera.lookAt(this.sphere.position);
+      if (!this.reduceMotion) {
+        const euler = new THREE.Euler(
+          this.rotation.x,
+          this.rotation.y,
+          this.rotation.z,
+        );
+        const quaternion = new THREE.Quaternion().setFromEuler(euler);
+        const vector = new THREE.Vector3(0, 0, 5);
+        vector.applyQuaternion(quaternion);
+        this.camera.position.copy(vector);
+        this.camera.lookAt(this.sphere.position);
+      }
 
       sphereMaterial.userData.shader.uniforms.time.value +=
         (dt * 0.1 * output[0]) / 255;
@@ -262,6 +253,7 @@ export class GdmLiveAudioVisuals3D extends LitElement {
 
   protected firstUpdated() {
     this.canvas = this.shadowRoot!.querySelector('canvas') as HTMLCanvasElement;
+    this.reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.init();
   }
 
