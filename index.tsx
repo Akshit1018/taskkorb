@@ -10,7 +10,13 @@ import {customElement, state} from 'lit/decorators.js';
 import {MAX_API_KEY_LENGTH, validateApiKey} from './src/auth/api-key';
 import {fetchHostedCredential} from './src/auth/live-session';
 import {isAudible} from './src/audio/level';
+import {
+  MAX_LISTEN_MS,
+  formatListenRemaining,
+  remainingListenMs,
+} from './src/audio/listen-cap';
 import {createBlob, decode, decodeAudioData} from './src/audio/pcm';
+import {insecureMicMessage, isSecureAudioContext} from './src/audio/secure-context';
 import {humanizeError} from './src/errors/humanize';
 import {
   INPUT_SAMPLE_RATE,
@@ -38,7 +44,9 @@ import {
   canStartListening,
   reduceSession,
 } from './src/session/machine';
+import {nextBackoffMs, nextResumptionHandle, shouldAutoReconnect} from './src/session/reconnect';
 import {track} from './src/telemetry/events';
+import {isSheetDismissKey, pathDismissesMore} from './src/ui/dismiss';
 import {
   EMPTY_TRANSCRIPT,
   TranscriptState,
@@ -49,8 +57,6 @@ import {
   writeStoredTranscript,
 } from './src/transcript/store';
 import './visual-3d';
-
-const MAX_LISTEN_MS = 180_000;
 
 @customElement('gdm-live-audio')
 export class GdmLiveAudio extends LitElement {
@@ -64,6 +70,7 @@ export class GdmLiveAudio extends LitElement {
   @state() undoTranscript: TranscriptState | null = null;
   @state() prefs: UserPrefs = DEFAULT_PREFS;
   @state() moreOpen = false;
+  @state() listenNow = 0;
   @state() inputNode?: GainNode;
   @state() outputNode?: GainNode;
 
@@ -82,6 +89,14 @@ export class GdmLiveAudio extends LitElement {
   private listenCancelRequested = false;
   private listenStartedAt = 0;
   private listenCapTimer = 0;
+  private listenTick = 0;
+  private reconnectTimer = 0;
+  private prefsTimer = 0;
+  private reconnectAttempts = 0;
+  private reconnectArmed = false;
+  private userClosed = false;
+  private resumptionHandle?: string;
+  private lastFocusedReady = false;
   private useAlphaLiveApi = false;
 
   static styles = css`
@@ -179,6 +194,20 @@ export class GdmLiveAudio extends LitElement {
     button[data-kind='talk'][aria-pressed='true'] {
       background: #7a0000;
       transform: scale(0.96);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      button[data-kind='talk'][aria-pressed='true'] {
+        transform: none;
+      }
+    }
+
+    button[data-kind='talk'] .talk-time {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0;
+      opacity: 0.82;
     }
 
     .more-sheet {
@@ -306,6 +335,8 @@ export class GdmLiveAudio extends LitElement {
     super.connectedCallback();
     this.transcript = readStoredTranscript();
     this.prefs = readPrefs();
+    window.addEventListener('keydown', this.onWindowKey);
+    window.addEventListener('pointerdown', this.onWindowPointer);
     void this.bootstrapAuth();
   }
 
@@ -314,6 +345,24 @@ export class GdmLiveAudio extends LitElement {
     this.stopRecording();
     this.session?.close();
     window.clearTimeout(this.listenCapTimer);
+    window.clearInterval(this.listenTick);
+    window.clearTimeout(this.reconnectTimer);
+    window.clearTimeout(this.prefsTimer);
+    window.removeEventListener('keydown', this.onWindowKey);
+    window.removeEventListener('pointerdown', this.onWindowPointer);
+  }
+
+  protected updated() {
+    const canFocusTalk =
+      this.sessionState.phase === 'ready' && !this.showKeyGate && !this.moreOpen;
+    if (canFocusTalk && !this.lastFocusedReady) {
+      this.lastFocusedReady = true;
+      const talk = this.renderRoot.querySelector<HTMLButtonElement>('[data-kind="talk"]');
+      talk?.focus();
+    }
+    if (this.sessionState.phase !== 'ready') {
+      this.lastFocusedReady = false;
+    }
   }
 
   private get showKeyGate(): boolean {
@@ -425,8 +474,11 @@ export class GdmLiveAudio extends LitElement {
               if (generation !== this.connectGeneration) {
                 return;
               }
+              this.reconnectAttempts = 0;
+              this.reconnectArmed = false;
+              this.userClosed = false;
               this.applyEvent({type: 'OPENED'});
-              track('session_opened');
+              track('session_opened', {resumed: Boolean(this.resumptionHandle)});
             },
             onmessage: async (message: LiveServerMessage) => {
               if (generation !== this.connectGeneration) {
@@ -449,8 +501,19 @@ export class GdmLiveAudio extends LitElement {
               if (generation !== this.connectGeneration) {
                 return;
               }
-              this.applyEvent({type: 'CLOSED', reason: e.reason});
-              track('session_closed', {reason: e.reason ? 'remote' : 'empty'});
+              const autoRetry = shouldAutoReconnect({
+                userClosed: this.userClosed,
+                attempt: this.reconnectAttempts,
+                errorKind: this.sessionState.errorKind,
+              });
+              this.applyEvent({type: 'CLOSED', reason: e.reason, autoRetry});
+              track('session_closed', {
+                reason: e.reason ? 'remote' : 'empty',
+                autoRetry,
+              });
+              if (autoRetry) {
+                this.armAutoReconnect();
+              }
             },
           },
           config: {
@@ -463,6 +526,9 @@ export class GdmLiveAudio extends LitElement {
             speechConfig: {
               voiceConfig: {prebuiltVoiceConfig: {voiceName: this.prefs.voice}},
             },
+            sessionResumption: this.resumptionHandle
+              ? {handle: this.resumptionHandle}
+              : {},
           },
         });
         if (generation !== this.connectGeneration) {
@@ -491,6 +557,32 @@ export class GdmLiveAudio extends LitElement {
   }
 
   private async handleLiveMessage(message: LiveServerMessage) {
+    if (message.goAway) {
+      track('session_go_away');
+      const autoRetry = shouldAutoReconnect({
+        userClosed: this.userClosed,
+        attempt: this.reconnectAttempts,
+        errorKind: this.sessionState.errorKind,
+      });
+      this.applyEvent({
+        type: 'CLOSED',
+        reason: 'server asked to resume',
+        autoRetry,
+      });
+      this.connectGeneration += 1;
+      if (autoRetry) {
+        this.armAutoReconnect();
+      }
+      return;
+    }
+
+    if (message.sessionResumptionUpdate) {
+      this.resumptionHandle = nextResumptionHandle(
+        this.resumptionHandle,
+        message.sessionResumptionUpdate,
+      );
+    }
+
     const inputText = message.serverContent?.inputTranscription?.text;
     if (inputText) {
       this.transcript = appendTurn(this.transcript, 'user', inputText);
@@ -611,6 +703,14 @@ export class GdmLiveAudio extends LitElement {
     if (this.listenInFlight || !canStartListening(this.sessionState.phase)) {
       return;
     }
+    if (!isSecureAudioContext(window)) {
+      this.applyEvent({
+        type: 'ERROR',
+        kind: 'mic',
+        message: insecureMicMessage(),
+      });
+      return;
+    }
 
     this.listenInFlight = true;
     this.listenCancelRequested = false;
@@ -639,12 +739,17 @@ export class GdmLiveAudio extends LitElement {
       this.sourceNode = this.inputAudioContext!.createMediaStreamSource(this.mediaStream);
       await this.attachCaptureGraph(this.sourceNode);
       this.listenStartedAt = Date.now();
+      this.listenNow = this.listenStartedAt;
       this.applyEvent({type: 'LISTEN_STARTED'});
       track('listen_started');
       window.clearTimeout(this.listenCapTimer);
+      window.clearInterval(this.listenTick);
       this.listenCapTimer = window.setTimeout(() => {
         this.stopRecording('cap');
       }, MAX_LISTEN_MS);
+      this.listenTick = window.setInterval(() => {
+        this.listenNow = Date.now();
+      }, 250);
     } catch (error) {
       const raw = error instanceof Error ? error.message : 'Microphone access failed.';
       track('mic_denied');
@@ -665,6 +770,7 @@ export class GdmLiveAudio extends LitElement {
       this.sessionState.phase === 'listening' || this.sessionState.phase === 'speaking';
 
     window.clearTimeout(this.listenCapTimer);
+    window.clearInterval(this.listenTick);
     this.workletNode?.disconnect();
     this.scriptProcessorNode?.disconnect();
     this.sourceNode?.disconnect();
@@ -682,7 +788,58 @@ export class GdmLiveAudio extends LitElement {
     }
   }
 
+  private armAutoReconnect() {
+    if (this.reconnectArmed || this.userClosed) {
+      return;
+    }
+    if (
+      !shouldAutoReconnect({
+        userClosed: this.userClosed,
+        attempt: this.reconnectAttempts,
+        errorKind: this.sessionState.errorKind,
+      })
+    ) {
+      return;
+    }
+
+    this.reconnectArmed = true;
+    const attempt = this.reconnectAttempts;
+    this.reconnectAttempts += 1;
+    window.clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = window.setTimeout(() => {
+      this.applyEvent({type: 'RECONNECT_SCHEDULED', attempt});
+      track('session_reconnecting', {attempt});
+      void this.reconnect();
+    }, nextBackoffMs(attempt));
+  }
+
+  private onWindowKey = (event: KeyboardEvent) => {
+    if (this.moreOpen && isSheetDismissKey(event.key)) {
+      this.moreOpen = false;
+    }
+  };
+
+  private onWindowPointer = (event: PointerEvent) => {
+    if (!this.moreOpen) {
+      return;
+    }
+    const path = event.composedPath().map((node) => {
+      if (!(node instanceof Element)) {
+        return {};
+      }
+      return {
+        classList: {contains: (name: string) => node.classList.contains(name)},
+        getAttribute: (name: string) => node.getAttribute(name),
+      };
+    });
+    if (pathDismissesMore(path)) {
+      this.moreOpen = false;
+    }
+  };
+
   private async reconnect() {
+    window.clearTimeout(this.reconnectTimer);
+    this.reconnectArmed = true;
     this.stopRecording();
     this.editingKey = false;
     this.applyEvent({type: 'RETRY'});
@@ -694,7 +851,7 @@ export class GdmLiveAudio extends LitElement {
           kind: 'connect',
           message:
             hosted.mode === 'error'
-              ? hosted.message
+              ? humanizeError('connect', hosted.message)
               : 'Hosted session expired. Reconnect or paste a Gemini key.',
         });
         return;
@@ -739,6 +896,11 @@ export class GdmLiveAudio extends LitElement {
   }
 
   private clearKey() {
+    this.userClosed = true;
+    this.resumptionHandle = undefined;
+    this.reconnectAttempts = 0;
+    this.reconnectArmed = false;
+    window.clearTimeout(this.reconnectTimer);
     this.stopRecording();
     this.session?.close();
     this.session = undefined;
@@ -803,7 +965,11 @@ export class GdmLiveAudio extends LitElement {
       language: next.language,
     });
     if (patch.voice || patch.language) {
-      void this.applyLiveSettings();
+      window.clearTimeout(this.prefsTimer);
+      this.prefsTimer = window.setTimeout(() => {
+        this.resumptionHandle = undefined;
+        void this.applyLiveSettings();
+      }, 400);
     }
   }
 
@@ -819,7 +985,12 @@ export class GdmLiveAudio extends LitElement {
         this.applyEvent({
           type: 'ERROR',
           kind: 'connect',
-          message: 'Could not refresh the hosted session after changing settings.',
+          message: humanizeError(
+            'connect',
+            hosted.mode === 'error'
+              ? hosted.message
+              : 'Could not refresh the hosted session after changing settings.',
+          ),
         });
         return;
       }
@@ -877,9 +1048,14 @@ export class GdmLiveAudio extends LitElement {
     const {phase, status, error} = this.sessionState;
     const listening = phase === 'listening' || phase === 'speaking';
     const hasTurns = this.transcript.turns.length > 0;
+    const remaining = formatListenRemaining(
+      remainingListenMs(this.listenStartedAt, this.listenNow || Date.now()),
+    );
+    const insecure = !isSecureAudioContext(window);
+    const talkDisabled = listening ? false : insecure || !canStartListening(phase);
 
     return html`
-      <div>
+      <main>
         ${this.showKeyGate
           ? html`
               <form class="key-gate" @submit=${this.saveApiKey}>
@@ -922,7 +1098,7 @@ export class GdmLiveAudio extends LitElement {
               </form>
             `
           : ''}
-        <div class="transcript" aria-live="polite">
+        <section class="transcript" aria-label="Conversation" aria-live="polite">
           ${hasTurns
             ? this.transcript.turns.map(
                 (turn) => html`
@@ -946,10 +1122,14 @@ export class GdmLiveAudio extends LitElement {
                 </button>
               </p>`
             : ''}
-        </div>
+        </section>
         ${this.moreOpen
           ? html`
-              <div class="more-sheet" role="dialog" aria-label="More controls">
+              <div
+                class="more-sheet"
+                role="dialog"
+                aria-modal="true"
+                aria-label="More controls">
                 <label>
                   Voice
                   <select .value=${this.prefs.voice} @change=${this.onVoiceInput}>
@@ -1002,23 +1182,25 @@ export class GdmLiveAudio extends LitElement {
               </div>
             `
           : ''}
-        <div class="controls">
+        <div class="controls" role="toolbar" aria-label="Talk">
           <button
             type="button"
             data-kind="talk"
-            aria-label="Hold to talk"
+            aria-label=${listening ? `Hold to talk, ${remaining} remaining` : 'Hold to talk'}
             aria-pressed=${listening}
-            title="Hold to talk"
+            title=${insecure ? insecureMicMessage() : 'Hold to talk'}
             @pointerdown=${this.onTalkPointerDown}
             @pointerup=${this.onTalkPointerUp}
             @pointercancel=${this.onTalkPointerUp}
             @keydown=${this.onTalkKeydown}
             @keyup=${this.onTalkKeyup}
-            ?disabled=${listening ? false : !canStartListening(phase)}>
+            ?disabled=${talkDisabled}>
             Talk
+            ${listening ? html`<span class="talk-time">${remaining}</span>` : ''}
           </button>
           <button
             type="button"
+            data-kind="more"
             aria-expanded=${this.moreOpen}
             aria-label="More controls"
             @click=${() => {
@@ -1028,19 +1210,21 @@ export class GdmLiveAudio extends LitElement {
           </button>
         </div>
         <p class="privacy">
-          Audio leaves this device only while Talk is held.
-          ${this.authMode === 'hosted'
-            ? ' This preview uses a short-lived token, not your long-lived key.'
-            : ' This is still test-only.'}
+          ${insecure
+            ? insecureMicMessage()
+            : html`Audio leaves this device only while Talk is held.
+                ${this.authMode === 'hosted'
+                  ? ' This preview uses a short-lived token, not your long-lived key.'
+                  : ' This is still test-only.'}`}
         </p>
-        <div id="status" role="status" data-kind=${error ? 'error' : 'info'}>
-          ${error || status}
+        <div id="status" role="status" data-kind=${error || insecure ? 'error' : 'info'}>
+          ${error || (insecure ? insecureMicMessage() : status)}
         </div>
         <gdm-live-audio-visuals-3d
           .phase=${phase}
           .inputNode=${this.inputNode}
           .outputNode=${this.outputNode}></gdm-live-audio-visuals-3d>
-      </div>
+      </main>
     `;
   }
 }

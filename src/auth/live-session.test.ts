@@ -42,4 +42,32 @@ describe('fetchHostedCredential', () => {
     });
     expect(result).toEqual({mode: 'byo'});
   });
+
+  it('retries a 429 once after Retry-After', async () => {
+    let calls = 0;
+    const waits: number[] = [];
+    const result = await fetchHostedCredential(
+      async () => {
+        calls += 1;
+        if (calls === 1) {
+          return new Response(JSON.stringify({available: true, error: 'Wait a moment, then reconnect.'}), {
+            status: 429,
+            headers: {
+              'Content-Type': 'application/json',
+              'Retry-After': '1',
+            },
+          });
+        }
+        return jsonResponse(200, {available: true, token: 'auth_tokens/retry'});
+      },
+      async (ms) => {
+        waits.push(ms);
+      },
+    );
+
+    expect(calls).toBe(2);
+    expect(waits).toEqual([1000]);
+    expect(result).toEqual({mode: 'hosted', token: 'auth_tokens/retry', expireTime: undefined});
+  });
 });
+

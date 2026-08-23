@@ -7,7 +7,7 @@ This is a **Vite app** with a thin local middleware layer.
 - UI: Lit custom elements
 - Voice: `@google/genai` Live API
 - Visual: Three.js orb
-- Domain: session reducer, PCM converters, product identity, telemetry
+- Domain: session reducer, reconnect/resumption policy, PCM converters, product identity, telemetry
 - Local backend: preview password gate + optional ephemeral Live token issuer
 
 There is no database, queue, or user-account provider.

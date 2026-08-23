@@ -6,4 +6,6 @@
 - Tunnels are not releases.
 - Removing sessionStorage is not a credential boundary. A token issuer is.
 - Five equal buttons is how a voice product hides its only action.
+- Gemini Live sockets die around 10 minutes. Reconnect without a resumption handle is a new conversation pretending to be the same one.
+- A 2-second mint cooldown without Retry-After turns settings into an error.
 - Do not invent candidate/resume systems on top of an audio orb to look complete.

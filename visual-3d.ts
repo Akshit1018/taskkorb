@@ -210,7 +210,9 @@ export class GdmLiveAudioVisuals3D extends LitElement {
     if (sphereMaterial.userData.shader) {
       const input = this.inputAnalyser?.data ?? new Uint8Array(3);
       const output = this.outputAnalyser?.data ?? new Uint8Array(3);
-      this.sphere.scale.setScalar(1 + (0.2 * output[1]) / 255);
+      this.sphere.scale.setScalar(
+        this.reduceMotion ? 1 : 1 + (0.2 * output[1]) / 255,
+      );
 
       const f = 0.001;
       this.rotation.x += (dt * f * 0.5 * output[1]) / 255;

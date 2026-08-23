@@ -12,7 +12,9 @@ export type ProductEventName =
   | 'transcript_received'
   | 'talk_capped'
   | 'transcript_clipped'
-  | 'prefs_changed';
+  | 'prefs_changed'
+  | 'session_reconnecting'
+  | 'session_go_away';
 
 export interface ProductEvent {
   name: ProductEventName;

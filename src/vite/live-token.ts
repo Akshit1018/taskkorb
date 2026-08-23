@@ -2,8 +2,8 @@ import {GoogleGenAI, type CreateAuthTokenConfig} from '@google/genai';
 import type {IncomingMessage, ServerResponse} from 'node:http';
 import type {Plugin} from 'vite';
 import {buildTokenCreateConfig, readMintedToken} from '../auth/mint-token';
+import {checkMintRate} from '../auth/mint-rate-limit';
 
-const MIN_INTERVAL_MS = 2000;
 const lastMintByIp = new Map<string, number>();
 
 function clientIp(req: IncomingMessage): string {
@@ -47,9 +47,10 @@ function attachIssuer(
     }
 
     const ip = clientIp(req);
-    const previous = lastMintByIp.get(ip) ?? 0;
     const now = Date.now();
-    if (now - previous < MIN_INTERVAL_MS) {
+    const rate = checkMintRate(lastMintByIp.get(ip) ?? 0, now);
+    if (rate.allowed === false) {
+      res.setHeader('Retry-After', String(Math.ceil(rate.retryAfterMs / 1000)));
       writeJson(res, 429, {
         available: true,
         error: 'Wait a moment, then reconnect.',

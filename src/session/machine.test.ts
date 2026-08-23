@@ -83,4 +83,21 @@ describe('session machine', () => {
     });
     expect(reduceSession(failed, {type: 'LISTEN_STOPPED'}).phase).toBe('error');
   });
+
+  it('marks an unexpected close as auto-retrying, then reconnects', () => {
+    const connecting = reduceSession(INITIAL_SESSION, {type: 'KEY_SUBMITTED'});
+    const ready = reduceSession(connecting, {type: 'OPENED'});
+    const dropped = reduceSession(ready, {
+      type: 'CLOSED',
+      reason: 'going away',
+      autoRetry: true,
+    });
+    const retrying = reduceSession(dropped, {type: 'RECONNECT_SCHEDULED', attempt: 1});
+
+    expect(dropped.phase).toBe('closed');
+    expect(dropped.status).toMatch(/reconnect/i);
+    expect(retrying.phase).toBe('connecting');
+    expect(retrying.status).toMatch(/reconnect/i);
+  });
 });
+

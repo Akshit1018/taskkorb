@@ -13,4 +13,9 @@ describe('humanizeError', () => {
   it('keeps a useful raw message when nothing matches', () => {
     expect(humanizeError('unknown', 'quota exceeded')).toBe('quota exceeded');
   });
+
+  it('explains a hosted mint cooldown', () => {
+    expect(humanizeError('connect', '429 Wait a moment')).toMatch(/wait/i);
+  });
 });
+

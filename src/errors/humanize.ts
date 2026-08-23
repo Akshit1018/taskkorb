@@ -21,6 +21,10 @@ export function humanizeError(kind: ErrorKind, raw: string): string {
     return 'The live audio model is unavailable. Reconnect to try the fallback model.';
   }
 
+  if (text.includes('429') || text.includes('wait a moment') || text.includes('too many')) {
+    return 'Wait a moment, then reconnect. The hosted session is cooling down.';
+  }
+
   if (kind === 'connect' || text.includes('network') || text.includes('failed to fetch')) {
     return 'Could not reach Gemini. Check the network and tap Reconnect.';
   }

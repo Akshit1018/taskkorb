@@ -1,5 +1,13 @@
 # Fix History
 
+## 2026-08-23 green-team reliability loop
+
+- Symptom: unexpected Live close left users stranded; voice/language remint could 429; Space did nothing until Talk was tapped; the 3-minute cap was invisible; More had no Escape; `http://` hosts failed the mic silently.
+- Root Cause: the first Green Team pass raised the conversation surface but left session lifetime, mint cooldown, and Talk feedback as adjacent gaps.
+- Fix: official Gemini session resumption + GoAway-aware backoff reconnect; mint `Retry-After` + one client retry + 400ms settings debounce; remaining talk time; auto-focus Talk; Escape/outside dismiss; insecure-context warning; reduced-motion on Talk and the orb pulse.
+- Verification: 56 unit tests + typecheck. Live resume against Google is UNVERIFIED.
+- Related: durable host, user-auth in front of mint, and a real microphone E2E remain open.
+
 ## 2026-08-23 green-team voice baseline
 
 - Symptom: Talk was one of five equal buttons; hold died on finger slide; talk-cap bypassed the reducer; preview cookie stored the password; transcripts were a silent scrap; dead EXR still shipped.

@@ -21,9 +21,10 @@ export type SessionEvent =
   | {type: 'LISTEN_STOPPED'}
   | {type: 'LISTEN_CAPPED'}
   | {type: 'ERROR'; message: string; kind: ErrorKind}
-  | {type: 'CLOSED'; reason: string}
+  | {type: 'CLOSED'; reason: string; autoRetry?: boolean}
   | {type: 'RESET'}
-  | {type: 'RETRY'};
+  | {type: 'RETRY'}
+  | {type: 'RECONNECT_SCHEDULED'; attempt: number};
 
 export interface SessionSnapshot {
   phase: SessionPhase;
@@ -149,9 +150,23 @@ export function reduceSession(
     case 'CLOSED':
       return {
         phase: 'closed',
-        status: event.reason
-          ? `Disconnected: ${event.reason}`
-          : 'Disconnected. Tap Reconnect.',
+        status: event.autoRetry
+          ? 'Connection dropped. Reconnecting…'
+          : event.reason
+            ? `Disconnected: ${event.reason}`
+            : 'Disconnected. Tap Reconnect.',
+        error: '',
+      };
+    case 'RECONNECT_SCHEDULED':
+      if (state.phase !== 'closed' && state.phase !== 'error') {
+        return state;
+      }
+      return {
+        phase: 'connecting',
+        status:
+          event.attempt > 0
+            ? `Reconnecting (try ${event.attempt + 1})…`
+            : 'Reconnecting…',
         error: '',
       };
     default: {
