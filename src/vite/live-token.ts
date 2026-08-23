@@ -27,7 +27,9 @@ async function mintFromServerKey(apiKey: string) {
     apiKey,
     httpOptions: {apiVersion: 'v1alpha'},
   });
-  const created = await client.authTokens.create({config});
+  const created = await client.authTokens.create({
+    config: config as CreateAuthTokenConfig,
+  });
   return readMintedToken(created, config.expireTime);
 }
 
