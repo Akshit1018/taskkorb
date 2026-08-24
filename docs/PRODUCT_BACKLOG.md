@@ -14,6 +14,7 @@
 | TASK-010 | Forensic product intelligence (inspect-only) | — | DONE — see docs/forensic/ |
 | TASK-011 | Green Team voice-surface baseline | P1 | DONE — see docs/GREEN_TEAM_TASKS.md |
 | TASK-012 | Remaining unblocked Green Team leftovers | P1 | DONE — tap Talk, Hindi UI, speaking-done, transcript merge |
+| TASK-013 | iOS/Android orb permission and auto-trigger research | P1 | DONE — see docs/MOBILE_RUNTIME.md; live phones UNVERIFIED |
 
 ## Rejected
 

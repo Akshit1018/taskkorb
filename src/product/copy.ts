@@ -91,6 +91,10 @@ export function copy(lang: UiLang) {
       privacyTitle: 'हम क्या भेजते हैं',
       privacy:
         'ऑडियो तभी इस डिवाइस से जाता है जब बात चालू हो। ट्रांस्क्रिप्ट इसी ब्राउज़र में रहती है। होस्टेड पूर्वावलोकन छोटी अवधि का टोकन इस्तेमाल करता है, लंबी कुंजी नहीं।',
+      silentIos:
+        'iPhone पर रिंगर स्विच साइलेंट हो तो ऑर्ब सुनाई नहीं दे सकता। स्विच खोलें, फिर बात दबाएँ।',
+      embeddedBrowser:
+        'इस पेज को Safari या Chrome में खोलें। मेल, WhatsApp या Instagram के अंदर का ब्राउज़र अक्सर माइक्रोफ़ोन नहीं दे पाता।',
       empty: 'बात दबाकर बोलें। छोड़ने पर रुक जाएगा।',
       clipped: 'डिवाइस हल्की रखने के लिए पुरानी पंक्तियाँ हटाई गईं।',
       you: 'आप',
@@ -131,6 +135,10 @@ export function copy(lang: UiLang) {
     privacyTitle: 'What we send',
     privacy:
       'Audio leaves this device only while Talk is on. Transcripts stay in this browser. Hosted preview uses a short-lived token, not your long-lived key.',
+    silentIos:
+      'On iPhone, a silent ringer switch can mute the orb. Unmute the phone, then tap Talk. This page cannot change that switch.',
+    embeddedBrowser:
+      'Open this page in Safari or Chrome. In-app browsers (Mail, WhatsApp, Instagram) often cannot use the microphone.',
     empty: 'Hold Talk and speak. Release to pause.',
     clipped: 'Older lines were dropped to keep this device light.',
     you: 'You',

@@ -18,7 +18,15 @@ import {
 } from './src/audio/listen-cap';
 import {createBlob, decode, decodeAudioData} from './src/audio/pcm';
 import {insecureMicMessage, isSecureAudioContext} from './src/audio/secure-context';
+import {applyPlayAndRecordHint, resumeAudioGraph} from './src/audio/unlock';
 import {humanizeError} from './src/errors/humanize';
+import {
+  deniedMicInstructions,
+  isAppleTouchDevice,
+  isEmbeddedBrowser,
+  mobileKind,
+  shouldReleaseMicrophoneOnHidden,
+} from './src/platform/runtime';
 import {
   INPUT_SAMPLE_RATE,
   LIVE_MODEL,
@@ -343,6 +351,7 @@ export class GdmLiveAudio extends LitElement {
     this.prefs = readPrefs();
     window.addEventListener('keydown', this.onWindowKey);
     window.addEventListener('pointerdown', this.onWindowPointer);
+    document.addEventListener('visibilitychange', this.onDocumentVisibility);
     void this.bootstrapAuth();
   }
 
@@ -356,6 +365,7 @@ export class GdmLiveAudio extends LitElement {
     window.clearTimeout(this.prefsTimer);
     window.removeEventListener('keydown', this.onWindowKey);
     window.removeEventListener('pointerdown', this.onWindowPointer);
+    document.removeEventListener('visibilitychange', this.onDocumentVisibility);
   }
 
   protected updated() {
@@ -441,9 +451,6 @@ export class GdmLiveAudio extends LitElement {
   }
 
   private async initClient() {
-    this.ensureAudio();
-    await this.outputAudioContext?.resume();
-    this.nextStartTime = this.outputAudioContext?.currentTime ?? 0;
     this.client = new GoogleGenAI({
       apiKey: this.apiKey,
       ...(this.useAlphaLiveApi ? {httpOptions: {apiVersion: 'v1alpha'}} : {}),
@@ -628,6 +635,7 @@ export class GdmLiveAudio extends LitElement {
     if (!this.outputAudioContext || !this.outputNode) {
       return;
     }
+    await resumeAudioGraph([this.inputAudioContext, this.outputAudioContext]);
     this.applyEvent({type: 'AUDIO_OUT'});
     this.nextStartTime = Math.max(
       this.nextStartTime,
@@ -730,8 +738,9 @@ export class GdmLiveAudio extends LitElement {
     this.listenCancelRequested = false;
     this.applyEvent({type: 'LISTEN_START_REQUESTED'});
     this.ensureAudio();
-    await this.inputAudioContext?.resume();
-    await this.outputAudioContext?.resume();
+    applyPlayAndRecordHint(navigator);
+    await resumeAudioGraph([this.inputAudioContext, this.outputAudioContext]);
+    this.nextStartTime = this.outputAudioContext?.currentTime ?? 0;
     track('mic_requested');
 
     try {
@@ -767,10 +776,17 @@ export class GdmLiveAudio extends LitElement {
     } catch (error) {
       const raw = error instanceof Error ? error.message : 'Microphone access failed.';
       track('mic_denied');
+      const denied =
+        /notallowed|permission|denied/i.test(raw) ||
+        (error instanceof DOMException && error.name === 'NotAllowedError');
       this.applyEvent({
         type: 'ERROR',
         kind: 'mic',
-        message: humanizeError('mic', raw),
+        message: denied
+          ? deniedMicInstructions(
+              mobileKind(navigator.userAgent, navigator.maxTouchPoints),
+            )
+          : humanizeError('mic', raw),
       });
       this.stopRecording();
     } finally {
@@ -826,6 +842,12 @@ export class GdmLiveAudio extends LitElement {
       void this.reconnect();
     }, nextBackoffMs(attempt));
   }
+
+  private onDocumentVisibility = () => {
+    if (document.hidden && shouldReleaseMicrophoneOnHidden()) {
+      this.stopRecording('teardown');
+    }
+  };
 
   private onWindowKey = (event: KeyboardEvent) => {
     if (this.moreOpen && isSheetDismissKey(event.key)) {
@@ -1151,6 +1173,11 @@ export class GdmLiveAudio extends LitElement {
       remainingListenMs(this.listenStartedAt, this.listenNow || Date.now()),
     );
     const insecure = !isSecureAudioContext(window);
+    const embedded = isEmbeddedBrowser(navigator.userAgent);
+    const appleTouch = isAppleTouchDevice(
+      navigator.userAgent,
+      navigator.maxTouchPoints,
+    );
     const talkDisabled = listening ? false : insecure || !canStartListening(phase);
     const lang = uiLanguage(this.prefs, navigator.language);
     const strings = copy(lang);
@@ -1345,7 +1372,12 @@ export class GdmLiveAudio extends LitElement {
                 </button>
               </div>
             `}
-        <p class="privacy">${insecure ? insecureMicMessage() : strings.privacy}</p>
+        <p class="privacy">
+          ${insecure
+            ? insecureMicMessage()
+            : html`${embedded ? `${strings.embeddedBrowser} ` : ''}${strings.privacy}
+                ${appleTouch ? ` ${strings.silentIos}` : ''}`}
+        </p>
         <div id="status" role="status" data-kind=${error || insecure ? 'error' : 'info'}>
           ${shownStatus}
         </div>

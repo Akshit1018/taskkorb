@@ -1,5 +1,12 @@
 # Fix History
 
+## 2026-08-24 mobile runtime
+
+- Symptom: unclear whether the floating orb could auto-listen or bounce people into iOS/Android Settings, and hosted connect created Web Audio before a tap.
+- Root Cause: iOS/Android web rules require a user gesture for mic + AudioContext; Settings URL schemes are private; Chrome records only on the visible tab; Safari can drop WebGL when backgrounded.
+- Fix: create/resume AudioContext on Talk; `play-and-record` hint; denied-mic copy with manual Safari/Chrome steps and no `App-Prefs`; stop mic on tab hide; WebGL context-lost `preventDefault`; in-app browser + silent-switch warnings; research in `docs/MOBILE_RUNTIME.md`.
+- Verification: unit tests for runtime/unlock helpers + typecheck. Physical iPhone/Android Gemini talk remains UNVERIFIED.
+
 ## 2026-08-23 remaining session work
 
 - Symptom: leftover critic/product gaps were still visible: doubled transcripts, speaking tint that never ended, hold-only Talk on mobile, English chrome for Hindi users, issuer 404 noise, no in-product privacy copy.

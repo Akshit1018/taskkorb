@@ -9,3 +9,5 @@
 - AudioContext still depends on a user gesture to leave `suspended`.
 - Transcripts merge cumulative snapshots; overlapping Google shapes can still look incomplete.
 - There is no automated browser E2E of the live microphone path in this environment.
+- Physical iPhone/Android Gemini talk, iOS AudioWorklet, and iOS 17 WebGL restore after backgrounding are UNVERIFIED here.
+- Web pages cannot open iOS Settings or Chrome site settings. Denied-mic copy is manual on purpose.

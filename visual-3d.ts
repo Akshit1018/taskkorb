@@ -14,6 +14,7 @@ import {Analyser} from './analyser';
 import * as THREE from 'three';
 import {fs as backdropFS, vs as backdropVS} from './backdrop-shader';
 import {vs as sphereVS} from './sphere-shader';
+import {preserveWebGlContext} from './src/platform/runtime';
 import type {SessionPhase} from './src/session/machine';
 
 /**
@@ -67,6 +68,8 @@ export class GdmLiveAudioVisuals3D extends LitElement {
   private reduceMotion = false;
   private onWindowResize?: () => void;
   private onVisibility?: () => void;
+  private onContextLost?: (event: Event) => void;
+  private onContextRestored?: () => void;
 
   static styles = css`
     canvas {
@@ -113,7 +116,9 @@ export class GdmLiveAudioVisuals3D extends LitElement {
 
     const renderer = new THREE.WebGLRenderer({
       canvas: this.canvas,
-      antialias: !true,
+      antialias: false,
+      alpha: false,
+      powerPreference: 'default',
     });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1));
@@ -168,6 +173,16 @@ export class GdmLiveAudioVisuals3D extends LitElement {
       this.animation();
     };
     document.addEventListener('visibilitychange', this.onVisibility);
+
+    this.onContextLost = (event: Event) => {
+      preserveWebGlContext(event);
+      cancelAnimationFrame(this.frame);
+    };
+    this.onContextRestored = () => {
+      this.animation();
+    };
+    this.canvas.addEventListener('webglcontextlost', this.onContextLost);
+    this.canvas.addEventListener('webglcontextrestored', this.onContextRestored);
     this.animation();
   }
 
@@ -178,6 +193,15 @@ export class GdmLiveAudioVisuals3D extends LitElement {
     }
     if (this.onVisibility) {
       document.removeEventListener('visibilitychange', this.onVisibility);
+    }
+    if (this.onContextLost) {
+      this.canvas?.removeEventListener('webglcontextlost', this.onContextLost);
+    }
+    if (this.onContextRestored) {
+      this.canvas?.removeEventListener(
+        'webglcontextrestored',
+        this.onContextRestored,
+      );
     }
     cancelAnimationFrame(this.frame);
   }

@@ -9,11 +9,17 @@ export default defineConfig({
     port: 3000,
     host: '0.0.0.0',
     allowedHosts: true,
+    headers: {
+      'Permissions-Policy': 'microphone=(self), camera=(), geolocation=()',
+    },
   },
   preview: {
     port: 3000,
     host: '0.0.0.0',
     allowedHosts: true,
+    headers: {
+      'Permissions-Policy': 'microphone=(self), camera=(), geolocation=()',
+    },
   },
   plugins: [previewGatePlugin(), liveTokenPlugin(), healthPlugin()],
   resolve: {

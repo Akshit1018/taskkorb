@@ -7,7 +7,7 @@ This is a **Vite app** with a thin local middleware layer.
 - UI: Lit custom elements
 - Voice: `@google/genai` Live API
 - Visual: Three.js orb
-- Domain: session reducer, reconnect/resumption policy, PCM converters, product identity, telemetry
+- Domain: session reducer, reconnect/resumption policy, PCM converters, product identity, telemetry, mobile runtime policy
 - Local backend: preview password gate + optional ephemeral Live token issuer
 
 There is no database, queue, or user-account provider.
@@ -17,7 +17,8 @@ There is no database, queue, or user-account provider.
 ```
 src/product     product identity and model/voice constants
 src/session     conversation lifecycle
-src/audio       PCM encode/decode
+src/audio       PCM encode/decode + unlock/resume
+src/platform    iOS/Android permission policy (no auto-mic, no Settings deep-link)
 src/auth        key validation + hosted token client
 src/vite        preview gate + token issuer + health
 src/telemetry   structured events

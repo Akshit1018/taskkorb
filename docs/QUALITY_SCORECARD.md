@@ -19,7 +19,7 @@ Scored against the current acceptance bar: a trustworthy voice-orb loop, not a f
 | Testing | 8/10 | 56 unit tests including reconnect, mint retry, listen cap |
 | Observability | 6/10 | Structured `taskkorb` events |
 | Maintainability | 7/10 | Decisions and backlog recorded |
-| Research Confidence | 7/10 | Live API docs and GitHub examples reviewed |
+| Research Confidence | 8/10 | Firecrawl scrape of MDN, Chrome, Apple 5.1.1, iOS audio/WebGL blogs |
 | Documentation | 8/10 | Vision matches the repository |
 
 Critical dimensions below 8 remain open: onboarding vs Gemini/ChatGPT, durable hosting, and live-audio proof.

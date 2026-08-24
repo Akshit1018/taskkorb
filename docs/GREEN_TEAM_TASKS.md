@@ -51,6 +51,7 @@ Critic loop 2 (code review, no live Gemini):
 | TASK-G028 | Missing issuer logs a 404 | Console noise | VERIFIED | 200 `{available:false}` | IMPLEMENTED / TESTED |
 | TASK-G029 | Mint IP map can grow | SRE | VERIFIED | pruneMintLog | IMPLEMENTED / TESTED |
 | TASK-G030 | No privacy copy in product | Forensic expected | VERIFIED | More sheet + footer | IMPLEMENTED |
+| TASK-G031 | iOS/Android orb permissions unclear | Owner research | VERIFIED | Talk-gated audio, no Settings redirect, hide-tab mic stop, WebGL restore | IMPLEMENTED / TESTED; live phones UNVERIFIED |
 
 Still BLOCKED: user-auth in front of mint, durable host, live Gemini E2E.
 
