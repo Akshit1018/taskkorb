@@ -53,6 +53,11 @@ Critic loop 2 (code review, no live Gemini):
 | TASK-G030 | No privacy copy in product | Forensic expected | VERIFIED | More sheet + footer | IMPLEMENTED |
 | TASK-G031 | iOS/Android orb permissions unclear | Owner research | VERIFIED | Talk-gated audio, no Settings redirect, hide-tab mic stop, WebGL restore | IMPLEMENTED / TESTED; live phones UNVERIFIED |
 | TASK-G032 | Mic deny + key-gate block first testers | Owner re-scan | VERIFIED | Mic stays ready; tap on phones; get-key link; issuer timeout | IMPLEMENTED / TESTED |
+| TASK-G033 | Dummy key auto-reconnects as `session` | RT-011 leftover | VERIFIED | Classify 401/`PERMISSION_DENIED` as key; do not CLOSED over it | IMPLEMENTED / TESTED |
+| TASK-G034 | Key gate hides after socket auth fail | RT-011 | VERIFIED | Stay in `error` + `editingKey` so Change/paste is visible | IMPLEMENTED / TESTED |
+| TASK-G037 | Health payload untested | RT-073 | VERIFIED | `healthStatus` unit test; `session_reconnect_gave_up` | IMPLEMENTED / TESTED |
+
+Critic loop 4: a rejected key that failed *after* `connect()` still looked like a flaky socket. Classification + keeping the gate open is the root-cause fix. Post-open model fallback (G035) and extracting the Live client (G022/G036) remain PARTIAL. Career OS still REJECTED.
 
 Still BLOCKED: user-auth in front of mint, durable host, live Gemini E2E.
 

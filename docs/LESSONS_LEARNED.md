@@ -11,3 +11,4 @@
 - Do not invent candidate/resume systems on top of an audio orb to look complete.
 - A generic “autonomous product owner” prompt is not an explicit pivot. Reconstruct from the repo.
 - Mic permission denial is not a broken Gemini session. Do not disable Talk for it.
+- A Live `onerror` that says PERMISSION_DENIED is a rejected key. Do not auto-reconnect it as a dropped socket.

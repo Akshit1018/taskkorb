@@ -1,5 +1,11 @@
 import {describe, expect, it} from 'vitest';
-import {MAX_AUTO_RECONNECT, nextBackoffMs, nextResumptionHandle, shouldAutoReconnect} from './reconnect';
+import {
+  MAX_AUTO_RECONNECT,
+  nextBackoffMs,
+  nextResumptionHandle,
+  reconnectGaveUp,
+  shouldAutoReconnect,
+} from './reconnect';
 
 describe('reconnect policy', () => {
   it('backs off and stops after three unexpected closes', () => {
@@ -20,6 +26,10 @@ describe('reconnect policy', () => {
     expect(shouldAutoReconnect({userClosed: false, attempt: 0, errorKind: 'mic'})).toBe(
       false,
     );
+    expect(
+      reconnectGaveUp({userClosed: false, attempt: MAX_AUTO_RECONNECT, errorKind: 'session'}),
+    ).toBe(true);
+    expect(reconnectGaveUp({userClosed: false, attempt: 0, errorKind: 'key'})).toBe(false);
   });
 
   it('keeps the last good handle while the model is generating', () => {

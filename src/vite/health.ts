@@ -1,6 +1,17 @@
 import type {IncomingMessage, ServerResponse} from 'node:http';
 import type {Plugin} from 'vite';
 
+export function healthStatus(env: {
+  GEMINI_API_KEY?: string;
+  PREVIEW_PASSWORD?: string;
+}): {ok: true; hostedToken: boolean; previewLocked: boolean} {
+  return {
+    ok: true,
+    hostedToken: Boolean(env.GEMINI_API_KEY?.trim()),
+    previewLocked: Boolean(env.PREVIEW_PASSWORD),
+  };
+}
+
 function writeJson(res: ServerResponse, body: unknown) {
   res.statusCode = 200;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -9,14 +20,13 @@ function writeJson(res: ServerResponse, body: unknown) {
 }
 
 export function healthPlugin(): Plugin {
-  const hosted = Boolean(process.env.GEMINI_API_KEY?.trim());
-  const preview = Boolean(process.env.PREVIEW_PASSWORD);
+  const body = healthStatus(process.env);
   return {
     name: 'taskkorb-health',
     configureServer(server) {
       server.middlewares.use((req: IncomingMessage, res: ServerResponse, next) => {
         if (req.method === 'GET' && (req.url ?? '').startsWith('/api/health')) {
-          writeJson(res, {ok: true, hostedToken: hosted, previewLocked: preview});
+          writeJson(res, body);
           return;
         }
         next();
@@ -25,7 +35,7 @@ export function healthPlugin(): Plugin {
     configurePreviewServer(server) {
       server.middlewares.use((req: IncomingMessage, res: ServerResponse, next) => {
         if (req.method === 'GET' && (req.url ?? '').startsWith('/api/health')) {
-          writeJson(res, {ok: true, hostedToken: hosted, previewLocked: preview});
+          writeJson(res, body);
           return;
         }
         next();

@@ -23,4 +23,6 @@ Date inspected: 2026-08-23
 | [Vocal Video iOS mic help](https://help.vocalvideo.com/article/140-troubleshooting-camera-microphone-access-on-iphone-or-ipad) | Website Settings + in-app browsers | Denied copy + embedded warning | Opening Settings for the user |
 | [Three.js iOS context lost](https://discourse.threejs.org/t/context-lost-when-backgrounding-safari-on-ios-17-developer-beta-8/55772) | Safari can drop WebGL when backgrounded | `preventDefault` + pause loop | Native WebView 60 FPS promise |
 
+| [Gemini API errors](https://ai.google.dev/gemini-api/docs/troubleshooting) | 401 / PERMISSION_DENIED vs flaky sockets | Classify as key/connect, not session | Treating every close as resume-worthy |
+
 License: no third-party code copied. MDN / Google / vendor docs only.

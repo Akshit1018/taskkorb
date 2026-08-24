@@ -1,5 +1,12 @@
 # Fix History
 
+## 2026-08-24 Green Team credential-error loop
+
+- Symptom: a dummy Gemini key could pass `connect()`, then `onerror` marked `session` and `onclose` auto-reconnected three times while hiding the key gate.
+- Root Cause: auth strings like `PERMISSION_DENIED` were treated as a flaky socket; `CLOSED` wiped `errorKind`. `humanizeError` also mapped any “permission” text to a blocked microphone.
+- Fix: `classifyLiveFailure`; key rejections stay in `error` with the paste gate; no auto-reconnect; health status is unit-tested and secret-free; `session_reconnect_gave_up` when backoff is exhausted.
+- Verification:  classify/health/reconnect unit tests + full suite + typecheck. Live Google 401 path UNVERIFIED.
+
 ## 2026-08-24 first-tester activation
 
 - Symptom: a pasted ownership prompt described a career OS; real testers still died on mic deny, hold-to-talk, and “where is the key?”

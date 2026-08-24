@@ -1,20 +1,18 @@
+import {looksLikeKeyRejection} from './classify';
 import {ErrorKind} from '../session/machine';
 
 export function humanizeError(kind: ErrorKind, raw: string): string {
   const text = raw.toLowerCase();
 
-  if (kind === 'mic' || text.includes('notallowed') || text.includes('permission')) {
-    return 'Microphone was blocked. Allow it in the browser, then use Talk.';
-  }
-
   if (
     kind === 'key' ||
-    text.includes('api key') ||
-    text.includes('unauthenticated') ||
-    text.includes('permission_denied') ||
-    text.includes('401')
+    looksLikeKeyRejection(raw)
   ) {
     return 'That Gemini key was rejected. Check the key and try again.';
+  }
+
+  if (kind === 'mic' || text.includes('notallowed') || text.includes('microphone')) {
+    return 'Microphone was blocked. Allow it in the browser, then use Talk.';
   }
 
   if (text.includes('notfound') || text.includes('404') || text.includes('model')) {

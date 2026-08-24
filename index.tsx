@@ -19,6 +19,7 @@ import {
 import {createBlob, decode, decodeAudioData} from './src/audio/pcm';
 import {insecureMicMessage, isSecureAudioContext} from './src/audio/secure-context';
 import {applyPlayAndRecordHint, resumeAudioGraph} from './src/audio/unlock';
+import {classifyLiveFailure} from './src/errors/classify';
 import {humanizeError} from './src/errors/humanize';
 import {
   deniedMicInstructions,
@@ -54,7 +55,12 @@ import {
   canStartListening,
   reduceSession,
 } from './src/session/machine';
-import {nextBackoffMs, nextResumptionHandle, shouldAutoReconnect} from './src/session/reconnect';
+import {
+  nextBackoffMs,
+  nextResumptionHandle,
+  reconnectGaveUp,
+  shouldAutoReconnect,
+} from './src/session/reconnect';
 import {modelsToTry} from './src/live/models';
 import {track} from './src/telemetry/events';
 import {isSheetDismissKey, pathDismissesMore} from './src/ui/dismiss';
@@ -511,15 +517,38 @@ export class GdmLiveAudio extends LitElement {
               if (generation !== this.connectGeneration) {
                 return;
               }
+              const raw = e.message || 'Live session error';
+              const kind = classifyLiveFailure(raw, this.authMode);
               this.applyEvent({
                 type: 'ERROR',
-                kind: 'session',
-                message: humanizeError('session', e.message || 'Live session error'),
+                kind,
+                message: humanizeError(kind, raw),
               });
+              if (kind === 'key') {
+                this.editingKey = true;
+              }
               track('session_error', {reason: 'callback'});
             },
             onclose: (e: CloseEvent) => {
               if (generation !== this.connectGeneration) {
+                return;
+              }
+              const closeKind = classifyLiveFailure(e.reason || '', this.authMode);
+              if (this.sessionState.errorKind === 'key' || closeKind === 'key') {
+                if (this.sessionState.errorKind !== 'key') {
+                  this.applyEvent({
+                    type: 'ERROR',
+                    kind: 'key',
+                    message: humanizeError('key', e.reason || 'That Gemini key was rejected.'),
+                  });
+                }
+                if (this.authMode !== 'hosted') {
+                  this.editingKey = true;
+                }
+                track('session_closed', {
+                  reason: e.reason ? 'remote' : 'empty',
+                  autoRetry: false,
+                });
                 return;
               }
               const autoRetry = shouldAutoReconnect({
@@ -829,13 +858,15 @@ export class GdmLiveAudio extends LitElement {
     if (this.reconnectArmed || this.userClosed) {
       return;
     }
-    if (
-      !shouldAutoReconnect({
-        userClosed: this.userClosed,
-        attempt: this.reconnectAttempts,
-        errorKind: this.sessionState.errorKind,
-      })
-    ) {
+    const policy = {
+      userClosed: this.userClosed,
+      attempt: this.reconnectAttempts,
+      errorKind: this.sessionState.errorKind,
+    };
+    if (!shouldAutoReconnect(policy)) {
+      if (reconnectGaveUp(policy)) {
+        track('session_reconnect_gave_up', {attempt: this.reconnectAttempts});
+      }
       return;
     }
 

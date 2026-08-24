@@ -16,6 +16,7 @@
 | TASK-012 | Remaining unblocked Green Team leftovers | P1 | DONE — tap Talk, Hindi UI, speaking-done, transcript merge |
 | TASK-013 | iOS/Android orb permission and auto-trigger research | P1 | DONE — see docs/MOBILE_RUNTIME.md; live phones UNVERIFIED |
 | TASK-014 | First-time mobile tester cannot recover from mic deny / find a key | P1 | DONE — Talk stays ready after mic deny; tap default on phones; AI Studio key link; issuer timeout |
+| TASK-015 | Dummy key reconnect storm + hidden key gate | P1 | DONE — classify Live auth failures; keep gate; health test |
 
 ## Rejected
 

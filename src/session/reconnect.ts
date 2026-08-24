@@ -26,6 +26,19 @@ export function shouldAutoReconnect(input: {
   return input.attempt < MAX_AUTO_RECONNECT;
 }
 
+export function reconnectGaveUp(input: {
+  userClosed: boolean;
+  attempt: number;
+  errorKind?: ErrorKind;
+}): boolean {
+  return (
+    !input.userClosed &&
+    input.errorKind !== 'key' &&
+    input.errorKind !== 'mic' &&
+    input.attempt >= MAX_AUTO_RECONNECT
+  );
+}
+
 export function nextResumptionHandle(
   current: string | undefined,
   update: {resumable?: boolean; newHandle?: string} | undefined,
