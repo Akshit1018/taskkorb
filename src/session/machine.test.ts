@@ -75,13 +75,30 @@ describe('session machine', () => {
     expect(canStartListening(capped.phase)).toBe(true);
   });
 
-  it('does not leave error when listen stops after a failure', () => {
-    const failed = reduceSession(INITIAL_SESSION, {
+  it('keeps Talk available after a microphone denial on a live session', () => {
+    const connecting = reduceSession(INITIAL_SESSION, {type: 'KEY_SUBMITTED'});
+    const ready = reduceSession(connecting, {type: 'OPENED'});
+    const denied = reduceSession(ready, {
       type: 'ERROR',
       kind: 'mic',
       message: 'Microphone was blocked.',
     });
-    expect(reduceSession(failed, {type: 'LISTEN_STOPPED'}).phase).toBe('error');
+
+    expect(denied.phase).toBe('ready');
+    expect(denied.error).toMatch(/Microphone/);
+    expect(denied.errorKind).toBe('mic');
+    expect(canStartListening(denied.phase)).toBe(true);
+    expect(canRetry(denied.phase)).toBe(false);
+  });
+
+  it('still treats a rejected key as a hard error', () => {
+    const failed = reduceSession(INITIAL_SESSION, {
+      type: 'ERROR',
+      kind: 'key',
+      message: 'That Gemini key was rejected.',
+    });
+    expect(failed.phase).toBe('error');
+    expect(canStartListening(failed.phase)).toBe(false);
   });
 
   it('returns to ready when playback ends and Talk is not held', () => {

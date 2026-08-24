@@ -19,7 +19,7 @@ This repository is not a career, resume, interview, or job-tracking product. Tho
 
 Without a server key, paste a Gemini key in the UI. That value stays in tab memory only and is never written to disk or the JS bundle. This is still test-only.
 
-After connect, hold Talk. Voice, language, and volume live under More. The preview cookie is a session token, not the password.
+After connect, use Talk (tap on phones, hold on desktop). Get a test key from [Google AI Studio](https://aistudio.google.com/apikey). Voice, language, and volume live under More. The preview cookie is a session token, not the password.
 
 ## Checks
 

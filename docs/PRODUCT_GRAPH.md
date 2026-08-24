@@ -18,7 +18,7 @@ User
 
 | Data | Source of truth | Notes |
 | --- | --- | --- |
-| API key | User / sessionStorage | Never logged. Client-side only. |
+| API key | User / tab memory | Never written to storage or the bundle. Test-only. |
 | Session phase | `src/session/machine.ts` | Deterministic reducer. |
 | Live audio connection | Gemini Live WebSocket | External. Can drop. |
 | Transcript | Live API transcription parts | Incremental, may be partial. |

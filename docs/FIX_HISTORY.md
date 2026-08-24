@@ -1,5 +1,12 @@
 # Fix History
 
+## 2026-08-24 first-tester activation
+
+- Symptom: a pasted ownership prompt described a career OS; real testers still died on mic deny, hold-to-talk, and “where is the key?”
+- Root Cause: the repo is the Audio Orb. Mic errors used the hard `error` phase. Desktop hold was the default. The key gate had no official get-key path. A hung issuer left “Opening session…” forever.
+- Fix: reject career OS again; mic deny stays `ready`; phones default to tap; AI Studio key link; disable Connect until the draft validates; 4s hosted-session timeout.
+- Verification: unit tests for machine/prefs/copy/issuer timeout + typecheck. Live Gemini and physical phones remain UNVERIFIED.
+
 ## 2026-08-24 mobile runtime
 
 - Symptom: unclear whether the floating orb could auto-listen or bounce people into iOS/Android Settings, and hosted connect created Web Audio before a tap.

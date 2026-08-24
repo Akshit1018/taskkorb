@@ -1,5 +1,7 @@
 import {parseRetryAfterMs} from './mint-rate-limit';
 
+export const HOSTED_SESSION_TIMEOUT_MS = 4000;
+
 export type HostedSession =
   | {mode: 'hosted'; token: string; expireTime?: string}
   | {mode: 'byo'}
@@ -47,18 +49,37 @@ async function requestLiveSession(fetcher: typeof fetch): Promise<{
   return {response, body};
 }
 
+function withTimeout<T>(work: Promise<T>, timeoutMs: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error('hosted-timeout'));
+    }, timeoutMs);
+    work.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
 export async function fetchHostedCredential(
   fetcher: typeof fetch = fetch,
   wait: (ms: number) => Promise<void> = (ms) =>
     new Promise((resolve) => {
       setTimeout(resolve, ms);
     }),
+  timeoutMs = HOSTED_SESSION_TIMEOUT_MS,
 ): Promise<HostedSession> {
   try {
-    const first = await requestLiveSession(fetcher);
+    const first = await withTimeout(requestLiveSession(fetcher), timeoutMs);
     if (first.response.status === 429) {
       await wait(parseRetryAfterMs(first.response.headers.get('Retry-After')));
-      const second = await requestLiveSession(fetcher);
+      const second = await withTimeout(requestLiveSession(fetcher), timeoutMs);
       return readSession(second.response, second.body);
     }
     return readSession(first.response, first.body);

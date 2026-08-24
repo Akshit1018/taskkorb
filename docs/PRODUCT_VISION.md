@@ -33,10 +33,10 @@ If that pivot is required later, it is a separate product decision, not an incre
 
 ## Current user journey
 
-1. Open the app
-2. Paste a Gemini API key for this browser tab
+1. Open the app (Safari or Chrome — not an in-app browser)
+2. If hosted mint is off, get a Gemini key from AI Studio and paste it for this tab
 3. Wait until the orb is connected
-4. Tap the red button and allow the microphone
+4. On a phone, tap Talk (hold is the desktop default) and allow the microphone
 5. Speak
 6. Hear and read the orb's reply
-7. Interrupt, pause, or reset
+7. Deny of the mic leaves Talk available; a rejected key does not

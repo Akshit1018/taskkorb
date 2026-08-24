@@ -49,9 +49,9 @@ export function deniedMicInstructions(kind: MobileKind): string {
     case 'ios':
       return 'Microphone is blocked. In Safari tap AA → Website Settings → Microphone → Allow. Or open Settings → Safari → Microphone. This page cannot open Settings for you.';
     case 'android':
-      return 'Microphone is blocked. In Chrome tap the lock icon → Site settings → Microphone, allow this site, then hold Talk. This page cannot jump into system settings.';
+      return 'Microphone is blocked. In Chrome tap the lock icon → Site settings → Microphone, allow this site, then use Talk. This page cannot jump into system settings.';
     case 'other':
-      return 'Microphone was blocked. Allow it in the browser, then hold Talk.';
+      return 'Microphone was blocked. Allow it in the browser, then use Talk.';
     default: {
       const exhaustive: never = kind;
       return exhaustive;

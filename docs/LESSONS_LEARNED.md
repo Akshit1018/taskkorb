@@ -9,3 +9,5 @@
 - Gemini Live sockets die around 10 minutes. Reconnect without a resumption handle is a new conversation pretending to be the same one.
 - A 2-second mint cooldown without Retry-After turns settings into an error.
 - Do not invent candidate/resume systems on top of an audio orb to look complete.
+- A generic “autonomous product owner” prompt is not an explicit pivot. Reconstruct from the repo.
+- Mic permission denial is not a broken Gemini session. Do not disable Talk for it.

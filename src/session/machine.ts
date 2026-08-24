@@ -169,6 +169,19 @@ export function reduceSession(
         error: '',
       };
     case 'ERROR':
+      if (
+        event.kind === 'mic' &&
+        (state.phase === 'ready' ||
+          state.phase === 'listening' ||
+          state.phase === 'speaking')
+      ) {
+        return {
+          phase: 'ready',
+          status: 'Connected. Hold Talk and speak.',
+          error: event.message,
+          errorKind: event.kind,
+        };
+      }
       return {
         phase: 'error',
         status: 'Something went wrong.',

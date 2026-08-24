@@ -43,6 +43,15 @@ describe('fetchHostedCredential', () => {
     expect(result).toEqual({mode: 'byo'});
   });
 
+  it('falls back to BYO if the issuer hangs', async () => {
+    const result = await fetchHostedCredential(
+      () => new Promise(() => {}),
+      async () => undefined,
+      10,
+    );
+    expect(result).toEqual({mode: 'byo'});
+  });
+
   it('retries a 429 once after Retry-After', async () => {
     let calls = 0;
     const waits: number[] = [];

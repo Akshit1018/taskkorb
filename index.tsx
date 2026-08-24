@@ -312,6 +312,10 @@ export class GdmLiveAudio extends LitElement {
       line-height: 1.4;
     }
 
+    .key-card a {
+      color: #d8d2e8;
+    }
+
     .key-card input {
       width: 100%;
       box-sizing: border-box;
@@ -348,7 +352,10 @@ export class GdmLiveAudio extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     this.transcript = readStoredTranscript();
-    this.prefs = readPrefs();
+    this.prefs = readPrefs(
+      localStorage,
+      mobileKind(navigator.userAgent, navigator.maxTouchPoints),
+    );
     window.addEventListener('keydown', this.onWindowKey);
     window.addEventListener('pointerdown', this.onWindowPointer);
     document.addEventListener('visibilitychange', this.onDocumentVisibility);
@@ -1181,6 +1188,7 @@ export class GdmLiveAudio extends LitElement {
     const talkDisabled = listening ? false : insecure || !canStartListening(phase);
     const lang = uiLanguage(this.prefs, navigator.language);
     const strings = copy(lang);
+    const keyReady = validateApiKey(this.keyDraft).ok;
     const talkLabel =
       this.prefs.talkMode === 'tap' ? strings.tapMode : strings.holdMode;
     const shownStatus = localizeStatus(
@@ -1201,6 +1209,14 @@ export class GdmLiveAudio extends LitElement {
                     ? html`<p>${strings.opening}</p>`
                     : html`
                         <p>${strings.pasteKey}</p>
+                        <p>
+                          <a
+                            href=${strings.getKeyHref}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            >${strings.getKey}</a
+                          >
+                        </p>
                         ${error
                           ? html`<p class="error" role="alert">${shownStatus}</p>`
                           : ''}
@@ -1210,9 +1226,12 @@ export class GdmLiveAudio extends LitElement {
                           maxlength=${MAX_API_KEY_LENGTH}
                           placeholder=${strings.keyLabel}
                           aria-label=${strings.keyLabel}
+                          aria-invalid=${!this.keyDraft || keyReady ? 'false' : 'true'}
                           .value=${this.keyDraft}
                           @input=${this.updateKeyDraft} />
-                        <button type="submit" ?disabled=${this.connectInFlight}>
+                        <button
+                          type="submit"
+                          ?disabled=${this.connectInFlight || !keyReady}>
                           ${this.connectInFlight ? strings.connecting : strings.connect}
                         </button>
                         ${this.apiKey

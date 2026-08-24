@@ -1,3 +1,4 @@
+import type {MobileKind} from '../platform/runtime';
 import {LIVE_VOICE} from './identity';
 
 export const PREFS_STORAGE = 'taskkorb.prefs';
@@ -26,6 +27,20 @@ export const DEFAULT_PREFS: UserPrefs = {
   talkMode: 'hold',
   reduceMotion: false,
 };
+
+export function defaultTalkMode(kind: MobileKind): TalkMode {
+  switch (kind) {
+    case 'ios':
+    case 'android':
+      return 'tap';
+    case 'other':
+      return 'hold';
+    default: {
+      const exhaustive: never = kind;
+      return exhaustive;
+    }
+  }
+}
 
 function isVoice(value: unknown): value is LiveVoice {
   return typeof value === 'string' && (LIVE_VOICES as readonly string[]).includes(value);
@@ -61,12 +76,19 @@ export function normalizePrefs(raw: unknown): UserPrefs {
   };
 }
 
-export function readPrefs(): UserPrefs {
+export function readPrefs(
+  storage: Pick<Storage, 'getItem'> | undefined = globalThis.localStorage,
+  kind: MobileKind = 'other',
+): UserPrefs {
+  const fallback: UserPrefs = {
+    ...DEFAULT_PREFS,
+    talkMode: defaultTalkMode(kind),
+  };
   try {
-    const raw = localStorage.getItem(PREFS_STORAGE);
-    return raw ? normalizePrefs(JSON.parse(raw)) : DEFAULT_PREFS;
+    const raw = storage?.getItem(PREFS_STORAGE);
+    return raw ? normalizePrefs(JSON.parse(raw)) : fallback;
   } catch {
-    return DEFAULT_PREFS;
+    return fallback;
   }
 }
 

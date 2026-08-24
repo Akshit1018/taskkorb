@@ -1,3 +1,5 @@
+import {GEMINI_KEY_HELP_URL} from './identity';
+
 export type UiLang = 'en' | 'hi';
 
 export function uiLanguage(
@@ -35,6 +37,18 @@ const STATUS_HI: Record<string, string> = {
   'Connection dropped. Reconnecting…': 'कनेक्शन टूटा। फिर जोड़ रहे हैं…',
   'Disconnected. Tap Reconnect.': 'कट गया। फिर जोड़ें दबाएँ।',
   'Reconnecting…': 'फिर जोड़ रहे हैं…',
+  'Microphone was blocked. Allow it in the browser, then use Talk.':
+    'माइक्रोफ़ोन बंद है। ब्राउज़र में अनुमति दें, फिर बात दबाएँ।',
+  'Paste a Gemini API key to connect.': 'जोड़ने के लिए Gemini कुंजी डालें।',
+  'That does not look like a Gemini API key.': 'यह Gemini कुंजी नहीं लगती।',
+  'That Gemini key was rejected. Check the key and try again.':
+    'वह Gemini कुंजी खारिज हुई। जाँचकर फिर कोशिश करें।',
+  'This page is not a secure context. Open it over HTTPS so the microphone can work.':
+    'यह पेज सुरक्षित नहीं है। माइक्रोफ़ोन के लिए इसे HTTPS पर खोलें।',
+  'Microphone is blocked. In Safari tap AA → Website Settings → Microphone → Allow. Or open Settings → Safari → Microphone. This page cannot open Settings for you.':
+    'माइक्रोफ़ोन बंद है। Safari में AA → Website Settings → Microphone → Allow करें। या Settings → Safari → Microphone खोलें। यह पेज Settings नहीं खोल सकता।',
+  'Microphone is blocked. In Chrome tap the lock icon → Site settings → Microphone, allow this site, then use Talk. This page cannot jump into system settings.':
+    'माइक्रोफ़ोन बंद है। Chrome में ताला → Site settings → Microphone से अनुमति दें, फिर बात दबाएँ। यह पेज सेटिंग नहीं खोल सकता।',
 };
 
 function applyTalkMode(status: string, talkMode: 'hold' | 'tap'): string {
@@ -64,6 +78,8 @@ export function copy(lang: UiLang) {
       tagline: 'बोलो, और ऑर्ब जवाब दे।',
       pasteKey:
         'केवल स्थानीय जाँच के लिए Gemini कुंजी डालें। यह इसी टैब की मेमोरी में रहती है। बेहतर है कि सर्वर कुंजी हो, ताकि जाँच करने वालों को कुंजी न डालनी पड़े।',
+      getKey: 'Gemini API कुंजी यहाँ से लें',
+      getKeyHref: GEMINI_KEY_HELP_URL,
       opening: 'सेशन खुल रहा है…',
       connect: 'जोड़ें',
       connecting: 'जुड़ रहे हैं…',
@@ -108,6 +124,8 @@ export function copy(lang: UiLang) {
     tagline: 'Speak, and the orb answers.',
     pasteKey:
       'Paste a Gemini key only for local testing. It stays in this tab’s memory. Prefer a server key so testers never paste one.',
+    getKey: 'Get a Gemini API key',
+    getKeyHref: GEMINI_KEY_HELP_URL,
     opening: 'Opening session…',
     connect: 'Connect',
     connecting: 'Connecting…',

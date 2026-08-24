@@ -52,6 +52,7 @@ Critic loop 2 (code review, no live Gemini):
 | TASK-G029 | Mint IP map can grow | SRE | VERIFIED | pruneMintLog | IMPLEMENTED / TESTED |
 | TASK-G030 | No privacy copy in product | Forensic expected | VERIFIED | More sheet + footer | IMPLEMENTED |
 | TASK-G031 | iOS/Android orb permissions unclear | Owner research | VERIFIED | Talk-gated audio, no Settings redirect, hide-tab mic stop, WebGL restore | IMPLEMENTED / TESTED; live phones UNVERIFIED |
+| TASK-G032 | Mic deny + key-gate block first testers | Owner re-scan | VERIFIED | Mic stays ready; tap on phones; get-key link; issuer timeout | IMPLEMENTED / TESTED |
 
 Still BLOCKED: user-auth in front of mint, durable host, live Gemini E2E.
 

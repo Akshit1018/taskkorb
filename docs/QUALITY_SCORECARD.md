@@ -16,7 +16,7 @@ Scored against the current acceptance bar: a trustworthy voice-orb loop, not a f
 | Security | 6/10 | Opaque preview session; mint still shared-password authorized |
 | Performance | 6/10 | Dead EXR removed; main JS still ~800 KB |
 | Accessibility | 8/10 | Landmarks, Escape dismiss, remaining-time label, reduced motion |
-| Testing | 8/10 | 73 unit tests including mobile runtime, unlock, reconnect |
+| Testing | 8/10 | 77 unit tests including activation, mobile runtime, reconnect |
 | Observability | 6/10 | Structured `taskkorb` events |
 | Maintainability | 7/10 | Decisions and backlog recorded |
 | Research Confidence | 8/10 | Firecrawl scrape of MDN, Chrome, Apple 5.1.1, iOS audio/WebGL blogs |

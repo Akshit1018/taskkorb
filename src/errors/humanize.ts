@@ -4,7 +4,7 @@ export function humanizeError(kind: ErrorKind, raw: string): string {
   const text = raw.toLowerCase();
 
   if (kind === 'mic' || text.includes('notallowed') || text.includes('permission')) {
-    return 'Microphone was blocked. Allow it in the browser, then hold Talk.';
+    return 'Microphone was blocked. Allow it in the browser, then use Talk.';
   }
 
   if (

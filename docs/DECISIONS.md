@@ -25,6 +25,13 @@
 - Choice: worklet capture, fallback to ScriptProcessor 2048, never route capture into speakers
 - Reversal: if a maintained capture library replaces this
 
+## D006 — Microphone denial is not a dead session
+
+- Alternatives: keep `error` and require Reconnect; treat mic like a rejected key
+- Evidence: testers who Allow the mic after a deny still found Talk disabled
+- Choice: mic errors on a live session return to `ready` and keep the banner
+- Reversal: only if a live session cannot capture again without a full reconnect
+
 ## D005 — Model `gemini-2.5-flash-native-audio-preview-12-2025`
 
 - Alternatives: keep `...preview-09-2025`; jump to `gemini-3.1-flash-live-preview` immediately

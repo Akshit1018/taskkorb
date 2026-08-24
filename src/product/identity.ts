@@ -1,5 +1,6 @@
 export const PRODUCT_NAME = 'Taskkorb';
 export const PRODUCT_TAGLINE = 'Speak, and the orb answers.';
+export const GEMINI_KEY_HELP_URL = 'https://aistudio.google.com/apikey';
 
 /**
  * Official Live Audio model used by current Gemini docs as of 2026-08.
