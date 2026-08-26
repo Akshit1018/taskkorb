@@ -236,6 +236,87 @@ Hermes-per-user, SMS budget, ChatGPT Plus-inside-app, floating dock over other a
 
 ---
 
+## 9. Market: what peers actually ship
+
+No official notes + tasks + voice + launcher + “terminal on phone” stack reads SMS, scrapes other apps’ chats, or draws an overlay. Taskkorb must not copy those three.
+
+Closest honest cousins:
+
+| Job | Who already does it | How they reach other apps |
+|---|---|---|
+| Voice → text anywhere you type | [Wispr Flow](https://wisprflow.ai/) (store title: AI Voice Keyboard) | **Keyboard**, not overlay |
+| Launcher + AI + share | [Raycast iOS](https://www.raycast.com/ios) | Keyboard + Activity sheet + Shortcuts |
+| Voice → tasks | [TickTick](https://ticktick.com/) Voice Capture | **In-app** |
+| Shared tasks | [Todoist](https://www.todoist.com/), [Notion](https://www.notion.com/) | Own accounts |
+| SSH on phone | [Termius](https://termius.com/), [Prompt 3](https://panic.com/prompt/) | Own terminal. [Warp](https://www.warp.dev/download) is **desktop only** |
+| Coworking voice orb | **None found** | — |
+
+Apple Reminders can ping you when you next message a named contact. That is Apple’s hook, not an SMS inbox. [Use Reminders](https://support.apple.com/en-us/102484)
+
+---
+
+## 10. OTP vs budget SMS (do not mix)
+
+**OTP AutoFill ≠ reading bank SMS.**
+
+- **iOS:** mark a field `oneTimeCode`. The **system** suggests a code from Messages. The app only gets the field value after the user accepts. No inbox API. [One-time codes](https://developer.apple.com/documentation/security/one-time-codes)
+- **Android:** [SMS Retriever](https://developers.google.com/identity/sms-retriever/overview) delivers **one SMS you sent** that contains **your** app hash. [User Consent](https://developers.google.com/identity/sms-retriever/user-consent/overview) is one tap on one OTP-shaped SMS. Play’s official OTP path is these APIs, **not** `READ_SMS`.
+- **Gmail:** do not scrape OTPs with `gmail.readonly`.
+
+Safe OTP = we send the SMS, OS fills it, we verify on a server, we do not log the code.
+
+---
+
+## 11. Family budget vs team daily report (two products)
+
+**Family budget v1:** shared household ledger, invite by email, cloud sync of **our** plan, manual entry + optional Gmail **forward**. Confirm drafts. Do not guess. This is [YNAB Together](https://support.ynab.com/en_us/ynab-together-B1nS78Cki) / [Spendee Shared Wallets](https://help.spendee.com/article/224-shared-wallets) minus bank OAuth and minus mailbox OAuth. [Family Link](https://families.google/familylink/) is **not** a budget app.
+
+None of those official pages claim “connect Gmail and scrape receipts.”
+
+**Team daily report v1:** shared task list + one EOD note per person + a compiled feed. That is [Geekbot](https://geekbot.com/) / [DailyBot](https://www.dailybot.com/) **check-in**, not SAP/Odoo ERP. If we do not ship GL, stock, and payroll, we are not shipping ERP.
+
+---
+
+## 12. Xiaomi “SS bol” → iOS
+
+There is **no public Xiaomi API** that lets a third-party app hook Super XiaoAI’s wake word. [小爱开放平台](https://developers.xiaoai.mi.com/voiceservice/index) is for putting XiaoAI **inside hardware**, email-gated.
+
+If the orb feels stronger on MI phones, the documented reason is Android [SYSTEM_ALERT_WINDOW](https://developer.android.com/reference/android/Manifest.permission#SYSTEM_ALERT_WINDOW) plus HyperOS toggles that default **off** ([后台弹出](https://dev.mi.com/xiaomihyperos/documentation/detail?pId=1625), [自启动](https://dev.mi.com/xiaomihyperos/documentation/detail?pId=1624)) — not a XiaoAI partnership.
+
+**Port to iOS means: lose overlay, lose SMS, lose always-on wake word. Keep tap-to-talk and Share.**
+
+---
+
+## 13. BYO keys, OpenAPI, Cloudflare, guardrails
+
+OpenAI and Gemini official docs: **do not put production API keys in mobile/web clients**; use a backend proxy. [OpenAI key safety](https://help.openai.com/en/articles/5112595-best-practices-for-api-key-safety) · [Gemini keys](https://ai.google.dev/gemini-api/docs/api-key)
+
+| Mode | Auto-config | Multi-device | We see the key? |
+|---|---|---|---|
+| **A. Keychain / Keystore, phone → vendor** | Paste once per device | Paste again | No |
+| **B. Worker / D1 stores the key** | Yes | Yes | **Yes** (Worker decrypts) |
+| **C. User’s own Worker URL** | They deploy | Yes | We never hold it |
+
+Do not claim “encrypted in KV so we never see it” while our Worker holds the unwrap key.
+
+[OpenAPI](https://www.openapis.org/what-is-openapi) is the contract for **our** task API (`tasks:read` / `tasks:write`). Provider `sk-` keys are a different hop.
+
+Cloudflare [Workers](https://developers.cloudflare.com/workers/) / [D1](https://developers.cloudflare.com/d1/) / [KV](https://developers.cloudflare.com/kv/) / named [Tunnel](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/) are real. [trycloudflare](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/do-more-with-tunnels/trycloudflare/) is **test-only** (no SLA, 200 in-flight, no SSE). This environment does **not** have dashboard access to “their” Cloudflare account.
+
+---
+
+## 14. What this repo already has (do not rebuild)
+
+`main` is the raw AI Studio “Copy of Audio Orb.”
+
+All voice-product work is on **`cursor/green-team-voice-79c8`**: Talk UI, BYO Gemini, hosted Live token mint, transcripts, session machine, mobile runtime, ~73 tests.
+
+**Does not exist anywhere in the repo:** tasks DB, user accounts, MCP, iOS/Android native, WhatsApp, Hermes host, budget, team sync.
+
+Reuse green-team audio/session/transcript. Everything in sections 1–13 is net-new product.
+
+---
+
 ## Honesty / UNVERIFIED
 
 - Firecrawl was often **keyless** / rate-limited. Some community pages (Reddit, unofficial URL schemes) are marked UNVERIFIED in the agent briefs and are **not** product contracts.
@@ -304,3 +385,19 @@ Hermes-per-user, SMS budget, ChatGPT Plus-inside-app, floating dock over other a
 - [Gemini iOS get started](https://support.google.com/gemini/answer/14554984?hl=en&co=GENIE.Platform%3DiOS)
 - [SwiftUI](https://developer.apple.com/swiftui/)
 - [SwiftData](https://developer.apple.com/documentation/swiftdata)
+
+**Market / OTP / family / Xiaomi / keys**
+
+- [Wispr Flow](https://wisprflow.ai/)
+- [Raycast iOS](https://www.raycast.com/ios)
+- [Termius](https://termius.com/)
+- [One-time codes (Apple)](https://developer.apple.com/documentation/security/one-time-codes)
+- [SMS Retriever](https://developers.google.com/identity/sms-retriever/overview)
+- [YNAB Together](https://support.ynab.com/en_us/ynab-together-B1nS78Cki)
+- [Geekbot](https://geekbot.com/)
+- [XiaoAI voice platform](https://developers.xiaoai.mi.com/voiceservice/index)
+- [SYSTEM_ALERT_WINDOW](https://developer.android.com/reference/android/Manifest.permission#SYSTEM_ALERT_WINDOW)
+- [OpenAI API key safety](https://help.openai.com/en/articles/5112595-best-practices-for-api-key-safety)
+- [Cloudflare Workers](https://developers.cloudflare.com/workers/)
+- [trycloudflare](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/do-more-with-tunnels/trycloudflare/)
+- [What is OpenAPI?](https://www.openapis.org/what-is-openapi)
