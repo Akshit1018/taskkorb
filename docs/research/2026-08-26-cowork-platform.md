@@ -317,6 +317,76 @@ Reuse green-team audio/session/transcript. Everything in sections 1–13 is net-
 
 ---
 
+## 15. Product-owner memo (this ask)
+
+Written as an owner pass over the third follow-up: “use everything, market-scan, full-fledge SS, iOS, Hermes, family budget, OTP, BYO keys, daily reporting / ERP.”
+
+### What I could actually use from this VM
+
+| Surface | Used? |
+|---|---|
+| Official docs + store marketing pages (Firecrawl) | Yes |
+| Taskkorb code on `cursor/green-team-voice-79c8` | Yes — read, not rewritten here |
+| App Store / Play apps as a phone user (Wispr, Todoist, Termius, Gemini) | **No.** This VM has no iPhone, no Play account, no Xiaomi |
+| “Aapka Cloudflare” dashboard / named Tunnel / Workers | **No.** This run’s environment has no `environment.json` and no Cloudflare credentials. Earlier Taskkorb tests used **trycloudflare** (ephemeral, no SLA) |
+| OpenAPI spec in-repo | **None exists yet** |
+| Hermes running behind each account | **Not deployed** |
+
+Do not treat this memo as “I installed Todoist and lived in it.” It is docs + code evidence.
+
+### Three products, not one ERP
+
+If we ship everything in one app, Play/App Review, Gmail CASA, WhatsApp OBA, and Hermes ops all hit at once. Cut into:
+
+| # | Product | Who | Sync | UI |
+|---|---|---|---|---|
+| **1. Voice companion** | Today’s orb | 1 person | Local transcript | Talk + More (already on green-team) |
+| **2. Personal + family ledger** | Budget | Household | Our cloud + invite | Manual / forward / confirm |
+| **3. Team EOD** | Shared tasks + daily note | 2–10 | Our REST + ACL | Today list + “submit EOD” |
+
+**ERP** (GL, HR, stock, payroll) is [SAP](https://www.sap.com/products/erp.html)-class. We are not there. Daily reporting = [Geekbot](https://geekbot.com/)-class check-in.
+
+### Market UI we can copy honestly
+
+- Notes/tasks: list + today + share-in ([Todoist](https://www.todoist.com/), [TickTick](https://ticktick.com/), Apple Reminders)
+- Voice: **in-app Talk** or **keyboard** ([Wispr](https://wisprflow.ai/), [Raycast iOS](https://www.raycast.com/ios)) — not a floating orb over ChatGPT
+- Terminal-on-phone: [Termius](https://termius.com/) is SSH to a **host the user owns**, not “Hermes inside the phone”
+- Other apps “andar dikhein”: **Share destinations + our own task rows**, not embedded Claude/ChatGPT UI (sandbox)
+
+### Full-fledge “SS bol” (MI → iOS)
+
+1. Confirm the Android build actually uses overlay (`SYSTEM_ALERT_WINDOW`). That is why it feels stronger on HyperOS — extra toggles, not XiaoAI partnership ([XiaoAI platform](https://developers.xiaoai.mi.com/voiceservice/index)).
+2. **Do not port the overlay.** iOS v1 = open Taskkorb → tap Talk → Share.
+3. Wake word = Hey Siri + App Shortcut only.
+4. Hermes stays on a server; phone is client.
+
+### Permission layers (keep this)
+
+| Layer | Local | Needs account / server |
+|---|---|---|
+| Mic + on-device STT | Yes | No |
+| Notes / tasks on one phone | SwiftData | No |
+| Family / team sync | — | Login + our API |
+| Gmail | Forward to us | Not `gmail.readonly` in v1 |
+| OTP | AutoFill / Retriever for **our** login SMS | We issue+verify; never log |
+| Provider keys | Keychain, phone→vendor | Or Worker (we **can see** the key) |
+| Claude Code / Codex / Gemini agents | — | MCP on **our** task API, not their chat apps |
+
+### What we already reuse
+
+From **green-team**: Talk UI, BYO Gemini, transcript store, session machine, mobile mic policy. Tagline is still “Speak, and the orb answers.”
+
+**Net-new for this memo:** accounts, task DB, OpenAPI, MCP, Telegram, family ledger, EOD feed, iOS SwiftUI, Hermes host. None of that is in `main`.
+
+### Recommended ship order (owner)
+
+1. Keep the orb honest (TTS for typed text if they still want that).
+2. Task API + login + OpenAPI (this unblocks MCP, Telegram, EOD).
+3. iOS SwiftUI Talk+Share **or** PWA — not both first.
+4. Family ledger and Hermes-per-profile only after 2 exists.
+
+---
+
 ## Honesty / UNVERIFIED
 
 - Firecrawl was often **keyless** / rate-limited. Some community pages (Reddit, unofficial URL schemes) are marked UNVERIFIED in the agent briefs and are **not** product contracts.
