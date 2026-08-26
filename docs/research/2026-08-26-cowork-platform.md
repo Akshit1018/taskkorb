@@ -2,7 +2,7 @@
 
 Research only. **No product code in this change.** Written 26 Aug 2026 after the owner asked for notes + tasks coworking, BYO ChatGPT, Hermes-per-user, budget from mail/SMS, MCP / Claude Code / Codex, WhatsApp, and an iOS floating dock that can drop voice into Claude / ChatGPT / Gemini / Codex.
 
-Thirteen research tracks ran in parallel (Firecrawl + official docs). The Parallel deep-research CLI was **not installed** in this environment; that gap is noted, not hidden.
+Thirteen research tracks ran first (Firecrawl + official docs). A later **18-agent OSS pass** (two batches; Task limit 10) plus sibling notes on other branches produced section 16. `parallel-cli` **is installed** here but **cannot run**: `PARALLEL_API_KEY` is unset and `parallel-cli login` needs a human. Firecrawl is installed but **unauthenticated / keyless-rate-limited**. Facts below are from official docs + GitHub API, not from Parallel Deep Research.
 
 This is **not legal advice**. Store and ToS rules change. Dates are scrape dates unless a page states otherwise.
 
@@ -387,10 +387,154 @@ From **green-team**: Talk UI, BYO Gemini, transcript store, session machine, mob
 
 ---
 
+## 16. Open-source inspiration (18-agent pass)
+
+**Copy the pattern. Do not vendor AGPL. Do not invent a ball Hermes does not ship.**
+
+This section does not change the hard walls in sections 1–15. It answers: Hermes kaise hai, ball kaise banate hain, memory/MCP/Telegram/budget OSS se kya chori karna safe hai.
+
+Sibling FACT notes (other branches, not merged here): Three.js orbs, Pipecat/LiveKit, Mem0/OpenMemory, Goose, Actual/Firefly, Continue/Cline/Aider, A2A, Telegram bots, WhisperKit.
+
+### 16.1 Hermes — what it actually is
+
+**Source:** [NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent) — GitHub SPDX **MIT**, ~236k stars this run, tagline “The agent that grows with you.” Docs: [hermes-agent.nousresearch.com](https://hermes-agent.nousresearch.com/docs/). NVIDIA + [NemoClaw](https://developer.nvidia.com/blog/deploy-self-evolving-agents-for-faster-more-secure-research-with-a-hermes-agent-and-nvidia-nemoclaw/).
+
+| Pattern | How Hermes does it | What Taskkorb should do |
+|---|---|---|
+| One runtime, many users | Docker/CLI + **profiles** (`HERMES_HOME`, `~/.hermes/profiles/<id>/`). Official: **one container, all profiles**. Two processes on one home **corrupt memory**. [Profiles](https://hermes-agent.nousresearch.com/docs/user-guide/profiles) · [Docker](https://hermes-agent.nousresearch.com/docs/user-guide/docker) | **One** hosted Hermes. One profile per household or per person — **not** a VM per user |
+| Self-evolving | Skills + `MEMORY.md` / `USER.md` / `SOUL.md` / `AGENTS.md`. Prompt says learn permanently; cron can propose skill changes | Copy the **files + human review loop**. Do **not** let the model rewrite spend rules or the system prompt unsigned |
+| Memory other agents can call | Gateway + `message_agent` + OpenAI-compat **`:8642/v1`** + optional MCP / Honcho | Host Hermes; Taskkorb talks HTTP/MCP. Budget/task specialists stay **in-process functions** first |
+| Voice / “ball” | Desktop: chat + **mic level bars**, optional “Hey Hermes”. **No 3D orb** in the official UI | Keep Taskkorb’s Three.js orb. Hermes is the **brain**, not the ball |
+| Mobile | Telegram / HTTP client / Termux. **No App Store Hermes SDK** | Never ship Hermes Python **inside** the iOS IPA. Phone = Talk + API |
+
+**Must still host (cannot skip):** the Hermes **process**, an **LLM bill** (OpenRouter / Nous Portal / local), and **disk** for `~/.hermes`. Hermes is not a SaaS login and is not `hermes.ai` as a plug-in.
+
+**Do not copy blindly:** default `terminal` + `process` + `website` + `browser` + `cron` + `messaging` + `spawn` is a **personal computer agent**. Lock those tools for a family-budget product.
+
+**NemoClaw (if we ever host Hermes for strangers):** copy no-secrets-in-the-agent-container, **deny-by-default egress**, snapshot **without** tokens. Do **not** treat Docker as enough isolation. v1 safer path: **user-hosted** Hermes (their laptop/VPS).
+
+### 16.2 The ball — who actually has one
+
+Taskkorb already **is** the ball (`visual-3d.ts` on `cursor/green-team-voice-79c8`): Lit + Three.js `IcosahedronGeometry(1, 10)`, FFT **32**, dual analysers (mic + model), session-phase colors. Apache-2.0 visual files.
+
+Hermes does **not** ship a ball. Pipecat and LiveKit Agents official docs **do not name an orb**.
+
+| Project | License | What it is | Copy |
+|---|---|---|---|
+| **This repo** (`visual-3d.ts`) | Apache-2.0 | Icosahedron + bloom + sine displacement | **Keep. This is the product ball.** |
+| [desertcache/velvet](https://github.com/desertcache/velvet) | MIT | Electron STT + Three.js “SoulOrb”. `fftSize` 512 → **mean of all bins** + noise gate. States `IDLE\|LISTENING\|PROCESSING\|SPEAKING` lerp colors/morph. High-res `SphereGeometry` + simplex | Voice-band average, gate, **lerp visual states** |
+| [kuhung/audiovisualizer](https://github.com/kuhung/audiovisualizer) | MIT (fork; parent [WaelYasmina/audiovisualizer](https://github.com/WaelYasmina/audiovisualizer) has **no LICENSE** — do not copy the parent) | `IcosahedronGeometry(3, 30)` + bloom + Perlin × average frequency | Organic lumps; keep our dual analysers |
+| [dcyoung/r3f-audio-visualizer](https://github.com/dcyoung/r3f-audio-visualizer) | MIT | R3F `fluidBall`: `fftSize` 8192 → 1/12-octave bars → **polar radius**. Desktop-heavy | Spectrum-on-surface later; keep `fftSize` modest on phone |
+| [nehasriva/phonon](https://github.com/nehasriva/phonon) | MIT | 800 Fibonacci particles, one bin per particle | Soft “thinking cloud” skin |
+| [soniaboller/audible-visuals](https://github.com/soniaboller/audible-visuals) | Apache-2.0 | Radial **lines**, not a closed mesh. Old CanvasRenderer — do not copy the stack | Spike silhouette only |
+| [pipecat-ai/pipecat](https://github.com/pipecat-ai/pipecat) + Voice UI Kit | BSD-2-Clause | Voice pipeline. Visual = **bars** / optional **circle**. Events: `UserStartedSpeaking`, `BotStartedSpeaking`, `LocalAudioLevel` / `RemoteAudioLevel`. [UIWorker](https://docs.pipecat.ai/pipecat/learn/ui-worker) mutates **this** app’s GUI | Session FSM + levels → **our** orb. Not an overlay |
+| [livekit/agents](https://github.com/livekit/agents) | Apache-2.0 | `lk.agent.state` = `listening\|thinking\|speaking`. Closest official widgets: **Aura** (shader field) and **Radial** (circle). ChatGPT voice uses LiveKit ([customers](https://livekit.io/customers)) | Copy the **state+volume contract**. Leave Gemini Live unless we switch stacks |
+
+**Looked at, do not copy:** [patrickheng/three-js-audio-experiment-v2](https://github.com/patrickheng/three-js-audio-experiment-v2) (CC BY-NC-SA 4.0); amunozdev/voiceorbs (React, not Three); mahdidavoodi7/expo-thinking-orbs (Skia).
+
+**Honest line:** OSS gives **orbs** and **voice stacks**. Hermes gives **bars**. Glue is ours. Talk→UI is always **in-app**.
+
+### 16.3 Memory OSS — pick by job
+
+| Job | Project | License / catch | Use |
+|---|---|---|---|
+| Searchable user memory | [mem0ai/mem0](https://github.com/mem0ai/mem0) | Apache-2.0 OSS; Platform is paid. Official: **never put the key in the browser**. [API](https://docs.mem0.ai/api-reference) | After a backend exists: `add` then `search` with `user_id`. Platform `https://api.mem0.ai` **or** OSS Docker `:8888` (`cd server && make bootstrap`). Official voice pattern: [LiveKit + Mem0](https://docs.mem0.ai/integrations/livekit) |
+| Local MCP memory | OpenMemory | **Sunset.** Docs 404; folder gone from `main`; last README says use OSS server. [Historical README](https://raw.githubusercontent.com/mem0ai/mem0/3e6ab394/openmemory/README.md) | **Do not build on it** |
+| Hosted “memory API” without running their server | [Honcho](https://honcho.dev/) | **Server AGPL-3.0**; SDKs often Apache. Hermes already plugs in | Call **Honcho Cloud** if needed. Do **not** vendor the server |
+| Agent with built-in memory | [letta-ai/letta](https://github.com/letta-ai/letta) | Apache-2.0 | Optional later. Not Todoist |
+| Coding agent that already speaks MCP | [aaif-goose/goose](https://github.com/aaif-goose/goose) (`block/goose` redirects) | **Apache-2.0** in `LICENSE`. Homepage “MIT licensed” is **wrong**. AAIF / Linux Foundation (9 Dec 2025) | Be a **remote Streamable HTTP MCP** they attach (`goose://extension?url=…&type=streamable_http`). Do not embed Goose. Desktop QR tunnel is **removed**. Archived Android “take over the phone” — do not copy |
+| Chat UI in front of Hermes | [open-webui/open-webui](https://github.com/open-webui/open-webui) | Branding-gated license after 0.6.6. Hermes docs: `OPENAI_BASE_URL=http://127.0.0.1:8642/v1` | Fine on **your** laptop. Mobile = PWA, not a native dock |
+
+**A2A vs MCP (official):** MCP = agent-to-**tool**. [A2A](https://a2a-protocol.org/latest/) = independent services. A2A is **not** a sub-agent protocol. OpenAI Agents SDK **handoffs** stay in one process. For 2–10 people: **in-process specialists + MCP for tools**. No Agent Card mesh between household bots.
+
+### 16.4 MCP — we are the server
+
+Continue / Cline / Cursor / Claude Code / Codex / Goose are **clients**. Taskkorb ships **hosted Streamable HTTP** (`https://…/mcp` + Bearer / later OAuth 2.1). Aider has **no official MCP**. stdio is a laptop hack.
+
+```json
+{
+  "mcpServers": {
+    "taskkorb": {
+      "type": "streamableHttp",
+      "url": "https://…/mcp",
+      "headers": { "Authorization": "Bearer <token>" }
+    }
+  }
+}
+```
+
+Real MIT/Apache **todo** MCP repos (pattern to copy, not to depend on as our store):
+
+- [Doist/todoist-mcp](https://github.com/Doist/todoist-mcp) — official Todoist, remote HTTP
+- [greirson/mcp-todoist](https://github.com/greirson/mcp-todoist) — MIT
+- [hald/things-mcp](https://github.com/hald/things-mcp) — MIT, Things 3 (local Mac)
+- [kazuph/mcp-taskmanager](https://github.com/kazuph/mcp-taskmanager) — MIT, file-backed
+- [flesler/mcp-tasks](https://github.com/flesler/mcp-tasks) — MIT, git-friendly `.md`
+
+Goose session **Todo** extension is an in-session checklist, **not** a team ACL product.
+
+### 16.5 Telegram before WhatsApp (OSS)
+
+Official Bot API: [core.telegram.org/bots](https://core.telegram.org/bots). Token from @BotFather. Privacy Mode **on** by default (bot misses most group chat). Telegram is **not** the task store.
+
+| Repo | License | Pattern |
+|---|---|---|
+| [turag-ev/kanboard-telegram-bot](https://github.com/turag-ev/kanboard-telegram-bot) | MIT | Group ACL → shared Kanboard API. Closest “teammates R/W each other’s tasks” |
+| [amarcu/vikunja-telegram-assistant](https://github.com/amarcu/vikunja-telegram-assistant) | MIT | Allowlist + one Vikunja token + Done/Undo buttons |
+| [maddevsio/mad-telegram-standup-bot](https://github.com/maddevsio/mad-telegram-standup-bot) | MIT | Group standup + **own** MySQL |
+| [ihoru/todoist_bot](https://github.com/ihoru/todoist_bot) | MIT | Per-user Todoist OAuth — **not** a shared board |
+| [5hay/tg2notion](https://github.com/5hay/tg2notion) | MIT | Write-only; unofficial Notion cookie — do not copy that auth |
+
+**Ship:** BotFather → webhook → commands + inline Done → **our** task API (`chat.id` / `from.id` mapped to users). Hermes already speaks Telegram as an **agent gateway**, not a tracker.
+
+### 16.6 Budget OSS — contracts, not AGPL servers
+
+| App | License | Official email/SMS | Household share |
+|---|---|---|---|
+| [actualbudget/actual](https://github.com/actualbudget/actual) | **MIT** | Neither. File import + optional bank sync | Local-first file; “avoid simultaneous usage” |
+| [firefly-iii/firefly-iii](https://github.com/firefly-iii/firefly-iii) | **AGPL-3.0** | Outbound SMTP only. Community “send an SMS” ≠ inbox read. Author **refuses official AI categories** (hallucinate) | Isolated administrations; couples = **shared password** until sharing ships |
+| GnuCash / Sure / Ghostfolio | GPL / AGPL | No official iOS SMS | Wrong job or AGPL |
+
+**Copy:** Actual envelope fields (account, payee, amount, date, category, transfer, reconciled); Firefly’s “don’t guess”; invite-by-email **own logins** (YNAB Together shape); user Share/Shortcut/forward. **Do not vendor Firefly PHP.** No official OSS app reads the iOS Messages inbox.
+
+### 16.7 Notes / cowork OSS (if the product is a workspace)
+
+- [AppFlowy-IO/AppFlowy](https://github.com/AppFlowy-IO/AppFlowy) — AGPL + ELv2. Inspiration for the **surface**, or self-host. Do not relicense.
+- [toeverything/AFFiNE](https://github.com/toeverything/AFFiNE) — MIT/EL mix; cloud ~10-seat. Closer to small-team notes than Logseq.
+- [outline/outline](https://github.com/outline/outline) — BSL. Docs API if the team is **wiki**, not tasks.
+- Logseq Sync is **not** multi-person cowork (their FAQ).
+
+### 16.8 iOS speech v1
+
+[argmaxinc/WhisperKit](https://github.com/argmaxinc/WhisperKit) → [argmaxinc/argmax-oss-swift](https://github.com/argmaxinc/argmax-oss-swift) — **MIT**, SPM, iOS **16** package / WhisperAX **17**. On-device. First Talk+Share slice.
+
+[whisper.cpp](https://github.com/ggml-org/whisper.cpp) — MIT, official iOS samples, but XCFramework + C, not one-step Swift.
+
+Apple [SpeechAnalyzer](https://developer.apple.com/documentation/speech/speechanalyzer) — iOS **26+** (live helper sample iOS 27). Official: transcriber modules **do not** send voice to Apple. Use later as optional path, not the floor.
+
+Default [SFSpeechRecognizer](https://developer.apple.com/documentation/speech/sfspeechrecognizer) **does** send audio to Apple unless `requiresOnDeviceRecognition`.
+
+### 16.9 What we still invent (no honest OSS clone)
+
+Floating iOS dock over Claude/ChatGPT, last-5-chats from other apps, ChatGPT Plus as an API key, WhatsApp personal inbox, Hermes-inside-App-Store, Xiaomi “SS bol” as a public wake-word SDK.
+
+### 16.10 Steal-list for the first slices (still needs grill Q1–Q7)
+
+1. **Orb:** keep green-team `visual-3d.ts`; steal velvet state lerp + voice-band gate if we want a second skin.
+2. **Typed → voice:** `speechSynthesis` on the web orb (no new OSS).
+3. **iOS v1:** WhisperKit + share sheet.
+4. **Tasks API + MCP:** our Postgres + Streamable HTTP, shaped like `mcp-tasks` / Todoist MCP / Cline’s remote JSON.
+5. **Telegram:** Bot API + our store (Kanboard/Vikunja as reference).
+6. **Memory (optional):** Mem0 Platform or OSS REST; or Honcho **Cloud**. Not OpenMemory.
+7. **Hermes (only if Q4 = yes):** one Docker, many profiles, gateway only, tools locked.
+8. **Budget:** Actual-like ledger in **our** DB; Firefly only as optional user backend.
+
+---
+
 ## Honesty / UNVERIFIED
 
 - Firecrawl was often **keyless** / rate-limited. Some community pages (Reddit, unofficial URL schemes) are marked UNVERIFIED in the agent briefs and are **not** product contracts.
-- `parallel-cli` deep research was **not available** (`command not found`).
+- `parallel-cli` is **installed** but **unauthenticated** (`PARALLEL_API_KEY` missing). Deep Research skill could not run. Do not claim a Parallel report exists.
 - Live Gemini on a physical phone for the current orb is still **UNVERIFIED** from earlier work.
 - No durable host or user-auth in this environment. This note does not invent one.
 - CASA / Play exception **prices and approval odds** are not official numbers; do not quote blogs as Google policy.
@@ -471,3 +615,27 @@ From **green-team**: Talk UI, BYO Gemini, transcript store, session machine, mob
 - [Cloudflare Workers](https://developers.cloudflare.com/workers/)
 - [trycloudflare](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/do-more-with-tunnels/trycloudflare/)
 - [What is OpenAPI?](https://www.openapis.org/what-is-openapi)
+
+**OSS inspiration (section 16)**
+
+- [NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent)
+- [Hermes profiles](https://hermes-agent.nousresearch.com/docs/user-guide/profiles)
+- [Hermes Docker](https://hermes-agent.nousresearch.com/docs/user-guide/docker)
+- [desertcache/velvet](https://github.com/desertcache/velvet)
+- [kuhung/audiovisualizer](https://github.com/kuhung/audiovisualizer)
+- [dcyoung/r3f-audio-visualizer](https://github.com/dcyoung/r3f-audio-visualizer)
+- [Pipecat UIWorker](https://docs.pipecat.ai/pipecat/learn/ui-worker)
+- [LiveKit prebuilt visualizers](https://docs.livekit.io/frontends/agents-ui/audio-visualizer/prebuilt/)
+- [LiveKit customers](https://livekit.io/customers)
+- [Mem0 API overview](https://docs.mem0.ai/api-reference)
+- [Mem0 OpenMemory sunset README](https://raw.githubusercontent.com/mem0ai/mem0/3e6ab394/openmemory/README.md)
+- [aaif-goose/goose LICENSE](https://github.com/aaif-goose/goose/blob/main/LICENSE)
+- [Goose mobile tunnel removed](https://github.com/aaif-goose/goose/blob/main/documentation/docs/experimental/remote-access/mobile-access.md)
+- [A2A protocol](https://a2a-protocol.org/latest/)
+- [Cline MCP](https://docs.cline.bot/mcp/mcp-overview)
+- [Continue MCP](https://docs.continue.dev/customize/deep-dives/mcp)
+- [Telegram Bot API](https://core.telegram.org/bots/api)
+- [actualbudget/actual](https://github.com/actualbudget/actual)
+- [Firefly III license](https://docs.firefly-iii.org/explanation/more-information/license/)
+- [argmaxinc/argmax-oss-swift](https://github.com/argmaxinc/argmax-oss-swift)
+- [Apple SpeechAnalyzer](https://developer.apple.com/documentation/speech/speechanalyzer)
