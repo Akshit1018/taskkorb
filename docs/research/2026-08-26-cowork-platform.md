@@ -1,6 +1,6 @@
 # Taskkorb cowork / personal-assistant direction
 
-Research only. **No product code in this change.** Written 26 Aug 2026 after the owner asked for notes + tasks coworking, BYO ChatGPT, Hermes-per-user, budget from mail/SMS, MCP / Claude Code / Codex, WhatsApp, and an iOS floating dock that can drop voice into Claude / ChatGPT / Gemini / Codex.
+Research only except a root **Apache-2.0 `LICENSE` + `NOTICE`** so the repo matches visual SPDX. **No platform / orb / iOS code in this change.** Written 26 Aug 2026 after the owner asked for notes + tasks coworking, BYO ChatGPT, Hermes-per-user, budget from mail/SMS, MCP / Claude Code / Codex, WhatsApp, and an iOS floating dock that can drop voice into Claude / ChatGPT / Gemini / Codex.
 
 Thirteen research tracks ran first (Firecrawl + official docs). A later **18-agent OSS pass** (two batches; Task limit 10) plus sibling notes on other branches produced section 16. `parallel-cli` **is installed** here but **cannot run**: `PARALLEL_API_KEY` is unset and `parallel-cli login` needs a human. Firecrawl is installed but **unauthenticated / keyless-rate-limited**. Facts below are from official docs + GitHub API, not from Parallel Deep Research.
 
@@ -236,17 +236,23 @@ Supabase/Firebase are optional when you need non-Apple accounts. They are not re
 
 ## Recommended first slice (this agent’s answer)
 
-**This is the decision gate. §15 is the expansion order after you pick.** Until Q1–Q7 are answered, **do not start C or a Swift rewrite**.
+**This is the decision gate. §15 is the expansion order after you pick.** Until you override the defaults below, treat Q1 = **A**. **Do not start C or a Swift rewrite** unless you change Q1.
 
-### Grill Q1–Q7 (answer these)
+### Grill Q1–Q7 (answer these — or keep the defaults)
 
-1. **First product:** A voice orb, B iOS personal assistant, or C team cowork (2–10)?
-2. **Model money:** BYO key (local/demo), we bill, or user-owned proxy? (Plus-login is out.)
-3. **First slice inside that product:** typed TTS, Talk+Share, or task API?
-4. **Hermes:** none / user-hosted on their laptop or VPS / Nous Cloud / we host for strangers? (Stranger-host needs isolation you do not have.)
-5. **Budget:** skip / household ledger + email forward + confirm?
-6. **Team chat:** none / Telegram / WhatsApp Cloud later (not Baileys, not personal inbox)?
-7. **Key custody:** Keychain per device / Worker holds the key (we can see it) / user’s own Worker?
+Defaults are this agent’s pick after the 18-model review. Override any row.
+
+| # | Question | Default until you say otherwise |
+|---|---|---|
+| 1 | First product: A orb / B iOS / C team cowork? | **A** — web orb. Only slice with code. |
+| 2 | Model money: BYO / we bill / user proxy? (Plus-login is out.) | **BYO** local/demo + existing hosted Live mint if the server holds `GEMINI_API_KEY`. Do not bill strangers yet. |
+| 3 | First slice: typed TTS / Talk+Share / task API? | **Typed TTS** on the existing orb (`speechSynthesis`, prefer `localService === true`). |
+| 4 | Hermes: none / user-hosted / Nous Cloud / we host strangers? | **None** in v1. Next allowed: user-hosted or [Nous Cloud](https://portal.nousresearch.com/cloud). Never “we host strangers in one Docker.” |
+| 5 | Budget: skip / household ledger + forward? | **Skip.** If later yes: forward + confirm drafts. No `gmail.readonly`, no CASA start. |
+| 6 | Team chat: none / Telegram / WhatsApp Cloud later? | **None.** Next allowed: Telegram. WhatsApp Cloud is later and still a business number (Groups API **max 8**). |
+| 7 | Key custody: Keychain / our Worker / user’s Worker? | **Keychain or the existing ephemeral mint.** A Worker that holds the user’s production key means **we can see it**. |
+
+You can still answer in chat: `Q1=A Q2=BYO Q3=TTS Q4=none Q5=skip Q6=none Q7=keychain` — or change any letter.
 
 ### After Q1
 
@@ -335,7 +341,7 @@ All voice-product work is on **`cursor/green-team-voice-79c8`**: Talk UI, BYO Ge
 
 `visual-3d.ts` **already exists on `main`** (`IcosahedronGeometry(1, 10)` + UnrealBloomPass). Green-team lowered the orb to `(1, 6)` and dropped bloom; session-phase colors and dual analysers are the productized skin.
 
-**Does not exist anywhere in the repo:** tasks DB, user accounts, MCP, iOS/Android native, WhatsApp, Hermes host, budget, team sync. This repo has **no root `LICENSE`** (only per-file Apache-2.0 SPDX on visual files). Add a `LICENSE` + third-party notices before copying MIT/BSD/Apache snippets.
+**Does not exist anywhere in the repo:** tasks DB, user accounts, MCP, iOS/Android native, WhatsApp, Hermes host, budget, team sync. Root **`LICENSE` is Apache-2.0** (Gosotek, 2026) plus **`NOTICE`**. Visual files already carry SPDX Apache-2.0. Do not copy AGPL servers or unlicensed parents into the tree.
 
 Reuse green-team audio/session/transcript. **Slice A TTS is not net-new.** Accounts, MCP, iOS, Hermes host, and budget in sections 1–13 **are**.
 
@@ -407,7 +413,7 @@ From **green-team**: Talk UI, BYO Gemini, transcript store, session machine, mob
 This is **expansion after Q1**, not a second first-slice. If Q1 = A, stop after step 1 until you explicitly pick C.
 
 1. Keep the orb honest (TTS for typed text if they still want that) — only if Q1 = A or you are already shipping the orb.
-2. **Only if Q1 = C:** Task API + login + OpenAPI on **one** store (name it: D1 if we stay on Workers; Postgres if we leave Workers). This unblocks MCP, Telegram, EOD.
+2. **Only if Q1 = C:** Task API + login + OpenAPI on **D1** (we already mint Live tokens on a Worker-shaped `/api/live-session`). Postgres only if we **leave** Workers — do not run both as the product store. This unblocks MCP, Telegram, EOD.
 3. **Only if Q1 = B:** iOS SwiftUI Talk+Share. Do not also start a PWA rewrite.
 4. Family ledger and Hermes only after the store in step 2 exists, and only if Q4 / Q5 say yes. Hermes = user-hosted or separate container per trust domain — not “one Docker, many strangers.”
 
@@ -441,7 +447,7 @@ Sibling FACT notes (other branches, not merged here): Three.js orbs, Pipecat/Liv
 
 ### 16.2 The ball — who actually has one
 
-Taskkorb already **is** the ball. `visual-3d.ts` on **`main`**: `IcosahedronGeometry(1, 10)` + UnrealBloomPass. On **`cursor/green-team-voice-79c8`**: orb is `(1, 6)`, bloom **removed**, FFT **32**, dual analysers (mic + model), session-phase colors. Visual files SPDX Apache-2.0; repo root has no `LICENSE`.
+Taskkorb already **is** the ball. `visual-3d.ts` on **`main`**: `IcosahedronGeometry(1, 10)` + UnrealBloomPass. On **`cursor/green-team-voice-79c8`**: orb is `(1, 6)`, bloom **removed**, FFT **32**, dual analysers (mic + model), session-phase colors. Visual files SPDX Apache-2.0; root `LICENSE` is now Apache-2.0.
 
 Hermes does **not** ship a ball. Pipecat and LiveKit Agents official docs **do not name an orb**.
 
@@ -553,11 +559,36 @@ Do not start items 4–8 unless Q1 = C (or Q5/Q4 explicitly yes).
 1. **Orb:** keep green-team `visual-3d.ts` (`(1, 6)`, no bloom); steal velvet **state lerp + noise gate** if we want a second skin.
 2. **Typed → voice:** `speechSynthesis` on the web orb; prefer `localService === true` (no new OSS).
 3. **iOS v1:** WhisperKit + share sheet (only if Q1 = B).
-4. **Tasks API + MCP (only if Q1 = C):** one named store (D1 on Workers **or** Postgres — pick; do not imply both) + Streamable HTTP + OAuth 2.1, shaped like `mcp-tasks` / [Todoist MCP](https://github.com/Doist/todoist-mcp) / [Cline remote HTTP](https://docs.cline.bot/mcp/mcp-overview).
+4. **Tasks API + MCP (only if Q1 = C):** **D1** on Workers + Streamable HTTP + OAuth 2.1, shaped like `mcp-tasks` / [Todoist MCP](https://github.com/Doist/todoist-mcp) / [Cline remote HTTP](https://docs.cline.bot/mcp/mcp-overview). Postgres only if we leave Workers.
 5. **Telegram (only if Q6 = Telegram):** Bot API + our store + webhook secret (Kanboard/Vikunja as reference).
 6. **Memory (optional):** Mem0 Platform or OSS REST; or Honcho **Cloud**. Not OpenMemory.
 7. **Hermes (only if Q4 = user-hosted or Nous Cloud):** gateway only, tools locked, **one trust domain**. See §2 / §16.1 — not “one Docker, many strangers.”
-8. **Budget (only if Q5 = yes):** Actual-like ledger in **our** DB; Firefly only as optional user backend.
+8. **Budget (only if Q5 = yes):** Actual-like ledger in **our** DB; Firefly only as optional user backend. Do **not** start Google Restricted-scope / CASA until a lawyer + Q5 = yes + a company that can pass verification.
+
+---
+
+## 17. Consider list — now locked (26 Aug 2026 “Go”)
+
+These were leftover 18-model “consider” items. They are **hard recommendations** until you override them in chat.
+
+| Item | Lock |
+|---|---|
+| Repo license | **Apache-2.0** (`LICENSE` + `NOTICE`). Matches visual SPDX. Commercial-friendly; do not relicense to AGPL. |
+| Store if Q1 = C | **D1**. Not D1 *and* Postgres. |
+| Gmail OAuth / CASA | **Do not start.** v1 budget (if Q5 later) = forward + confirm. Restricted `gmail.readonly` is uncertain + high friction. |
+| Hermes isolation | One container = one trust domain. Profiles ≠ sandbox. |
+| Hermes Cloud | Nous hosts it. We may *link* a user there. We do not mint tenants. |
+| Hermes in IPA | **No.** Desktop/CLI/Docker/Termux only. |
+| OpenMemory | **Sunset.** Mem0 REST or Honcho Cloud. |
+| Firefly III | Do not vendor the AGPL server. |
+| `kuhung/audiovisualizer` | Ideas only. Unlicensed parent. |
+| Velvet “voice-band” | Do not copy as ours. Steal lerp + gate only. |
+| Auth split | Demo: short-lived scoped token. Team write: OAuth 2.1. `/me` ≠ `/mcp` tools. |
+| WhatsApp | Cloud API business number only. Groups OBA **max 8**. No Baileys. |
+| iOS wake | Vocal Shortcuts / Hey Siri → App Shortcut. No third-party always-on. |
+| Plus / Pro / Advanced | **≠ API.** No login-with-Plus. |
+| Claude Code / Codex CLI quota | **≠** a license for Taskkorb. |
+| Default product | Q1 = **A**, Q3 = typed TTS. Do not code C or Swift until you change Q1. |
 
 ---
 
@@ -571,6 +602,7 @@ Do not start items 4–8 unless Q1 = C (or Q5/Q4 explicitly yes).
 - A domain literally `hermes.ai` as a plug-in SaaS was **not found**. Closest official products are Nous Hermes Agent and [Hermes Cloud](https://portal.nousresearch.com/cloud).
 - The old Gemini “Advanced ≠ API” community thread (`support.google.com/gemini/thread/342070024`) now **404s**. Use [Gemini API billing](https://ai.google.dev/gemini-api/docs/billing).
 - 18-model review (26 Aug 2026) corrected: Hermes profiles ≠ sandbox; AppFlowy/AFFiNE licenses; green-team orb `(1, 6)` / no bloom; grill Q1–Q7 inlined; MCP OAuth vs Bearer; BYO vs production keys; kuhung ideas-only; test count 80.
+- “Go” pass locked remaining consider items: Apache-2.0 `LICENSE` + `NOTICE`; D1 if Q1 = C; no Gmail CASA start; Q1–Q7 defaults (A / BYO / TTS / none / skip / none / Keychain-or-mint).
 
 ---
 
@@ -678,5 +710,6 @@ Do not start items 4–8 unless Q1 = C (or Q5/Q4 explicitly yes).
 - [Telegram Bot API](https://core.telegram.org/bots/api)
 - [actualbudget/actual](https://github.com/actualbudget/actual)
 - [Firefly III license](https://docs.firefly-iii.org/explanation/more-information/license/)
+- [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)
 - [argmaxinc/argmax-oss-swift](https://github.com/argmaxinc/argmax-oss-swift)
 - [Apple SpeechAnalyzer](https://developer.apple.com/documentation/speech/speechanalyzer)
