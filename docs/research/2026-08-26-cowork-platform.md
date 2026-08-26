@@ -26,17 +26,17 @@ This is **not legal advice**. Store and ToS rules change. Dates are scrape dates
 
 | Wish | Fact | Official source |
 |---|---|---|
-| Use ChatGPT Plus / Claude Pro / Gemini Advanced **inside our app** | **No.** Consumer chat plans do **not** include API. Separate billed keys. | [What is ChatGPT Plus?](https://help.openai.com/en/articles/6950777-what-is-chatgpt-plus) · [Claude Pro vs API](https://support.claude.com/en/articles/9876003) · [Gemini Advanced ≠ API](https://support.google.com/gemini/thread/342070024) |
+| Use ChatGPT Plus / Claude Pro / Gemini Advanced **inside our app** | **No.** Consumer chat plans do **not** include a generic chat/voice API. Separate billed keys. Claude Code / Codex CLI can share a **vendor CLI** quota — that is not a license for Taskkorb. | [What is ChatGPT Plus?](https://help.openai.com/en/articles/6950777-what-is-chatgpt-plus) · [Claude Pro vs API](https://support.claude.com/en/articles/9876003) · [Gemini API billing](https://ai.google.dev/gemini-api/docs/billing) · [Gemini API keys](https://ai.google.dev/gemini-api/docs/api-key) |
 | Login-with-Plus / scrape ChatGPT cookies | **ToS + technically blocked** (credential sharing, other-origin cookies) | [OpenAI Terms](https://openai.com/policies/row-terms-of-use/) |
 | iOS app reads SMS / bank texts | **No public inbox API** | [IdentityLookup filtering](https://developer.apple.com/documentation/identitylookup/sms-and-mms-message-filtering) |
 | iOS Message Filter as a secret inbox | **Unknown senders only**; extension **cannot write** to the containing app | Same Apple page |
 | Android SMS for a notes/tasks/voice app | Play lists **SMS-based money management** as a **review exception**, not a right. Core-functionality + declaration. Budget apps **must not** exfiltrate non-finance SMS. Bluecoins was **denied** in 2018–19. | [Play SMS policy](https://support.google.com/googleplay/android-developer/answer/10208820) · [Bluecoins](https://www.bluecoinsapp.com/google-policy-removing-sms-permissions/) |
-| Floating dock over Claude / ChatGPT like AssistiveTouch | **Blocked on iOS.** No `SYSTEM_ALERT_WINDOW`. AssistiveTouch is system-only. | [Review 2.5.1 / 2.5.8 / 5.2.5](https://developer.apple.com/app-store/review/guidelines/) · [AssistiveTouch](https://support.apple.com/en-us/111794) |
+| Floating dock over Claude / ChatGPT like AssistiveTouch | **Blocked on iOS.** No public overlay API and no `SYSTEM_ALERT_WINDOW`. AssistiveTouch is system-only. | [Review 2.5.1](https://developer.apple.com/app-store/review/guidelines/) (public APIs / intended purpose) · [AssistiveTouch](https://support.apple.com/en-us/111794) |
 | Read last 3–5 chats from Claude / ChatGPT / Gemini / Codex | **Blocked.** Sandbox. Those apps do not publish a list API. | [iOS sandbox](https://support.apple.com/guide/security/security-of-runtime-process-sec15bfe098e/web) |
-| “Hey Listen” always-on wake word | **Blocked** for third-party iOS. Gemini on iPhone is still **tap Live**. | [Review 2.5.4 / 2.5.14](https://developer.apple.com/app-store/review/guidelines/) · [Gemini Live iOS](https://support.google.com/gemini/answer/15274899?hl=en&co=GENIE.Platform%3DiOS) |
-| Embed Hermes Python in the App Store binary | **No.** Official Hermes is Desktop / CLI / Docker / Termux. Review 2.5.2 forbids downloading/executing new code. | [Hermes platforms](https://hermes-agent.nousresearch.com/docs/getting-started/platform-support) |
-| WhatsApp reads personal chats / joins the team group as a bot | **No.** Cloud API is a **business number**, 1:1. Groups API is Official Business Account, max 8, gated. | [WhatsApp platform](https://developers.facebook.com/documentation/business-messaging/whatsapp/about-the-platform) |
-| Gmail “connect inbox, auto-import all receipts” in v1 | `gmail.readonly` is **Restricted**. Verification + often annual CASA if a server sees mail. Budget is **not** a listed Gmail use case. | [Gmail scopes](https://developers.google.com/workspace/gmail/api/auth/scopes) |
+| “Hey Listen” always-on wake word | **No third-party system wake-word API.** Always-on + screen-off fails Review **2.5.4** (background must match intended purpose). 2.5.14 only requires consent + a recording indicator. Gemini on iPhone is still **tap Live**. User-configured [Vocal Shortcuts](https://support.apple.com/guide/iphone/iph7f242ea2c/ios) can map a phrase to our Shortcut — that is the system, not our listener. | [Review 2.5.4](https://developer.apple.com/app-store/review/guidelines/) · [Gemini Live iOS](https://support.google.com/gemini/answer/15274899?hl=en&co=GENIE.Platform%3DiOS) |
+| Embed Hermes in the App Store binary | **No iOS SDK.** Official Hermes is Desktop / CLI / Docker / Termux. Review **2.5.2** forbids downloading/executing **new code that changes features** (skills, shell, browser) — not “any interpreter.” | [Hermes platforms](https://hermes-agent.nousresearch.com/docs/getting-started/platform-support) · [Review 2.5.2](https://developer.apple.com/app-store/review/guidelines/) |
+| WhatsApp reads personal chats / joins the team group as a bot | **No personal inbox.** Cloud API is a **business number**. Default webhooks are user → *your* number. [Groups API](https://developers.facebook.com/documentation/business-messaging/whatsapp/groups) is OBA, **max 8** participants — below the 2–10 cowork target. Unauthorized WhatsApp-Web / Baileys bridges are prohibited. | [WhatsApp platform](https://developers.facebook.com/documentation/business-messaging/whatsapp/about-the-platform) · [Groups API](https://developers.facebook.com/documentation/business-messaging/whatsapp/groups) |
+| Gmail “connect inbox, auto-import all receipts” in v1 | `gmail.readonly` is **Restricted**. Verification + often annual CASA if a server sees mail. Budget is **not an explicit** approved use; reporting/monitoring examples exist, so treat as **uncertain + high friction**, not a hard policy ban. Forward remains the v1 path. | [Gmail scopes](https://developers.google.com/workspace/gmail/api/auth/scopes) · [Workspace policy](https://developers.google.com/workspace/workspace-api-user-data-developer-policy) |
 
 **Owner rule we should keep:** if category/merchant is unclear, **do not guess**. Ask.
 
@@ -58,15 +58,15 @@ Same split:
 
 ### Product models
 
-| Model | What the user does | Honest? |
-|---|---|---|
-| **A. BYO key** (already Gemini) | Paste AI Studio / OpenAI / Claude Console / OpenRouter key | Yes |
-| **B. We bill** | We hold keys, meter tokens, charge the user | Yes; we pay providers |
-| **C. “Use your Plus”** | Login as ChatGPT | **No. Do not ship.** |
+| Model | What the user does | Billing honest? | Production-safe? |
+|---|---|---|---|
+| **A. BYO key** (already Gemini) | Paste AI Studio / OpenAI / Claude Console / OpenRouter key | Yes | **Local/demo only** on web (XSS, extensions). Prefer Keychain + phone→vendor, or the existing hosted **ephemeral Live mint**. Vendor docs: no production keys in clients |
+| **B. We bill** | We hold keys, meter tokens, charge the user | Yes; we pay providers | Yes if the key stays on a backend |
+| **C. “Use your Plus”** | Login as ChatGPT | **No. Do not ship.** | — |
 
 Aggregators ([OpenRouter](https://openrouter.ai/), [Nous Portal](https://hermes-agent.nousresearch.com/docs/integrations/nous-portal)) are **new** paid pipes. They do not attach Plus/Pro/Advanced.
 
-**Speak typed text (your first small ask):** use the browser/device [SpeechSynthesis](https://developer.mozilla.org/en-US/docs/Web/API/SpeechSynthesis) (free, on-device). Gemini Live and OpenAI TTS are **separate billed APIs**, not Plus.
+**Speak typed text (your first small ask):** use the browser/device [SpeechSynthesis](https://developer.mozilla.org/en-US/docs/Web/API/SpeechSynthesis). That API is **not a billed Gemini/OpenAI TTS hop**. Voices may be **remote** — pick one with [`localService === true`](https://developer.mozilla.org/en-US/docs/Web/API/SpeechSynthesisVoice/localService) before promising on-device privacy.
 
 ---
 
@@ -74,17 +74,21 @@ Aggregators ([OpenRouter](https://openrouter.ai/), [Nous Portal](https://hermes-
 
 Closest match to “hermes.ai / self-evolve with the user”:
 
-**[Hermes Agent](https://hermes-agent.nousresearch.com/docs/)** by [Nous Research](https://nousresearch.com/) — MIT, [GitHub](https://github.com/NousResearch/hermes-agent). Self-improving loop: skills from experience, `MEMORY.md` / `USER.md`, Honcho-class user modeling. Desktop + CLI. Telegram and 20+ gateways. **Not** a hosted “paste hermes.ai and we mint per-user SaaS.”
+**[Hermes Agent](https://hermes-agent.nousresearch.com/docs/)** by [Nous Research](https://nousresearch.com/) — MIT, [GitHub](https://github.com/NousResearch/hermes-agent). Self-improving loop: skills from experience, `MEMORY.md` / `USER.md`, Honcho-class user modeling. Desktop + CLI. Telegram and 20+ gateways. **Not** a “paste hermes.ai and Taskkorb mints per-user SaaS.” Nous also sells [Hermes Cloud](https://portal.nousresearch.com/cloud) (they host an instance). That is **their** product, not an OEM we wrap, and not ChatGPT Plus.
 
 NVIDIA writeup of the same agent + NemoClaw: [self-evolving Hermes](https://developer.nvidia.com/blog/deploy-self-evolving-agents-for-faster-more-secure-research-with-a-hermes-agent-and-nvidia-nemoclaw/).
 
 ### “Har user ke peeche Hermes”
 
-Official isolation is a **profile** (`~/.hermes/profiles/<name>/`), not a VM per user. Official Docker: **one container, all profiles**. Two processes on one home **corrupt memory**. [Profiles](https://hermes-agent.nousresearch.com/docs/user-guide/profiles) · [Docker](https://hermes-agent.nousresearch.com/docs/user-guide/docker)
+Official **layout** is a **profile** (`~/.hermes/profiles/<name>/`), not a VM per user. Official Docker: one container *can* host all profiles. Two writers on one home **compound / entangle state**. [Profiles](https://hermes-agent.nousresearch.com/docs/user-guide/profiles) · [Docker](https://hermes-agent.nousresearch.com/docs/user-guide/docker)
 
-Mobile story official docs actually give: **phone = Telegram (or our HTTP client). Hermes stays on a server.** No iOS SDK. Termux is Android CLI only.
+**Profiles are not a sandbox.** The official page: a profile does **not** stop the agent from reading folders outside that directory; on the default local backend it has the same filesystem access as the OS user; tool subprocesses keep the real user `HOME` unless `terminal.home_mode: profile`. One hosted container for **unrelated** households is a shared-RCE / shared-`.ssh` layout. Use **one trust domain per process** (one family on one host they own), or **separate containers + volumes + credentials**. Docker docs also recommend a separate container per profile when you need blast-radius isolation.
 
-MIT lets us **fork and host**. It does not let us ship Python+shell+browser inside the App Store ([Review 2.5.2](https://developer.apple.com/app-store/review/guidelines/)).
+Mobile story official docs actually give: **phone = Telegram (or our HTTP client). Hermes stays on a server.** No iOS SDK. Termux is Android CLI only. [Goose AI](https://apps.apple.com/app/goose-ai/id6752889295) is the closest shipped “thin phone client → user’s host” cousin — pairing is fragile / Desktop tunnel removed.
+
+MIT lets us **fork and host**. It does not let us ship Hermes’s **self-evolving skills + terminal/process/browser** inside the App Store ([Review 2.5.2](https://developer.apple.com/app-store/review/guidelines/)).
+
+**WhatsApp via Hermes:** `hermes whatsapp` (Baileys / Linked Devices) is the unofficial Web-style bridge §5 forbids. Only `whatsapp-cloud` matches the Cloud API wall — still not a personal inbox.
 
 ---
 
@@ -95,9 +99,9 @@ Cowork memory is an **HTTP store keyed by user/team**, called from **our backend
 | Tool | License | Role |
 |---|---|---|
 | [Mem0](https://docs.mem0.ai/introduction) | Apache 2.0 | REST memory API, SaaS or Docker |
-| [Honcho](https://honcho.dev/) | AGPL-3.0 | Multi-peer memory; Hermes already plugs in |
+| [Honcho](https://honcho.dev/) ([plastic-labs/honcho](https://github.com/plastic-labs/honcho)) | Server **AGPL-3.0**; do not vendor | Multi-peer memory; Hermes already plugs in. Prefer Honcho Cloud |
 | [Zep Cloud](https://help.getzep.com/) / [Graphiti](https://help.getzep.com/graphiti/getting-started/welcome) | Cloud / Apache 2.0 | Graph memory. Zep **Community Edition is discontinued** |
-| [Letta](https://docs.letta.com/agent-sdk/memory/) | Apache 2.0 | Agent runtime with git memory, not a generic notes API |
+| [Letta](https://docs.letta.com/agent-sdk/memory/) | Apache 2.0 | Agent runtime with **memory blocks + archival memory**, not a generic notes API |
 | Hermes built-in files | MIT | Local only; do not share one home |
 
 **MCP** = tools (Sheets, our task API). **[A2A](https://a2a-protocol.org/latest/)** = separate agent *services*. **OpenAI Agents SDK** = in-process handoffs. **Hermes `message_agent`** = Hermes-proprietary, not A2A.
@@ -110,9 +114,11 @@ For 2–10 people: **one backend, in-process specialists, MCP for tools.** Do no
 
 ## 4. MCP / Claude Code / Codex — no partnership required
 
-Ship a **task API the mobile app already needs**, then a thin **remote MCP** on streamable HTTP (`https://…/mcp`) with **OAuth 2.1**.
+Ship a **task API the mobile app already needs**, then a thin **remote MCP** on streamable HTTP (`https://…/mcp`).
 
-Users add it themselves:
+**Auth (one story):** laptop demo may use a **short-lived, revocable, scoped** personal token. Anything with **2–10 people + write** ships **OAuth 2.1** (discovery, audience, `tasks:read` / `tasks:write`). Do not leave a static Bearer in a committed config as the product.
+
+Users add it themselves (Claude Code form; other clients differ):
 
 ```text
 claude mcp add --transport http taskkorb https://…/mcp
@@ -122,8 +128,10 @@ Same pattern for [Cursor MCP](https://cursor.com/docs/mcp) and [Codex MCP](https
 
 ```text
 Phone  ──REST──►  our API + task store
-Claude Code / Cursor / Codex / ChatGPT App  ──MCP+OAuth──►  same store
+Claude Code / Cursor / Codex  ──MCP + OAuth 2.1──►  same store
 ```
+
+ChatGPT **Apps SDK** is a widget *inside ChatGPT*, not this MCP hop. Do not draw “ChatGPT App” on the MCP line.
 
 stdio MCP on a laptop is a personal hack, not a multi-device product.
 
@@ -131,11 +139,11 @@ stdio MCP on a laptop is a personal hack, not a multi-device product.
 
 ## 5. WhatsApp vs Telegram
 
-**WhatsApp Cloud API** is a dedicated **business inbox**. Consumer WhatsApp cannot be registered. Incoming webhooks are only “user → *your* business number.” Unauthorized WhatsApp-Web bridges are prohibited. [About the platform](https://developers.facebook.com/documentation/business-messaging/whatsapp/about-the-platform)
+**WhatsApp Cloud API** is a dedicated **business inbox**. Consumer WhatsApp cannot be registered. Incoming webhooks are usually “user → *your* business number.” [Groups API](https://developers.facebook.com/documentation/business-messaging/whatsapp/groups) exists for **OBA** businesses, **max 8** people — too small for the 2–10 cowork ask. Unauthorized WhatsApp-Web / Baileys bridges are prohibited. [About the platform](https://developers.facebook.com/documentation/business-messaging/whatsapp/about-the-platform)
 
 After 24h without a user message, only **approved templates** (and those are billed). [Send messages](https://developers.facebook.com/documentation/business-messaging/whatsapp/messages/send-messages)
 
-**Telegram Bot API** is free, no phone, groups work, Hermes already first-class. [Telegram bots](https://core.telegram.org/bots) · [Hermes Telegram](https://hermes-agent.nousresearch.com/docs/user-guide/messaging/telegram)
+**Telegram Bot API** is free; the **bot** needs no phone (creating one via @BotFather still needs a Telegram account). Groups work **if** Privacy Mode is off or the bot is admin — default Privacy Mode means the bot misses most group chat. Hermes already first-class. [Telegram bots](https://core.telegram.org/bots) · [Hermes Telegram](https://hermes-agent.nousresearch.com/docs/user-guide/messaging/telegram)
 
 **Simplest cowork chat: Telegram first. WhatsApp later as a shared business number, not “our WhatsApp group.”**
 
@@ -148,9 +156,11 @@ Teammates reading/writing **each other’s tasks** is **our task store + auth**,
 ### Email
 
 - **v1:** unique inbound address + Gmail **filter/forward**. Official, no Restricted scope. [Forward Gmail](https://support.google.com/mail/answer/10957)
-- **Not v1:** `gmail.readonly` OAuth. Restricted + verification + often [CASA](https://appdefensealliance.dev/casa). Budget is not a listed Gmail approved use. [Workspace policy](https://developers.google.com/workspace/workspace-api-user-data-developer-policy)
+- **Not v1:** `gmail.readonly` OAuth. Restricted + verification + often [CASA](https://appdefensealliance.dev/casa). Budget is not an *explicit* approved use; treat as high-friction, not a proven ban. [Workspace policy](https://developers.google.com/workspace/workspace-api-user-data-developer-policy)
 
 Parse → **draft** → user confirms. If unsure: *“I am unable to tell whose sale this was.”*
+
+Inbound mail is a **public write endpoint**. Use a high-entropy, per-user, rotatable address; drop non-receipt mail (including OTPs — §10); do not treat forwarded SPF/DKIM as proof the bank sent it. Confirm-drafts stops silent ledger writes; it does not stop a convincing forge.
 
 ### SMS
 
@@ -177,24 +187,24 @@ Honest handoff:
 
 1. **Share sheet** / Copy — always works.
 2. **User Shortcut** via official `shortcuts://run-shortcut?name=…&input=text&text=…`. [Apple](https://support.apple.com/guide/shortcuts/run-a-shortcut-from-a-url-apd624386f42/ios)
-3. **Claude official:** Share / Ask Claude intent; Code only: `claude://code/new?q=`. [Claude mobile links](https://support.claude.com/en/articles/14898120-open-the-claude-mobile-app-with-a-link) · [Claude iOS intents](https://support.claude.com/en/articles/10263469)
+3. **Claude official:** Share / Ask Claude intent. `claude://code/new?q=` and `https://claude.ai/code/new?q=` need **Claude Code on that account** — they fail for plain Claude Pro. Prefer the `https://` universal link when you use this path. [Claude mobile links](https://support.claude.com/en/articles/14898120-open-the-claude-mobile-app-with-a-link) · [Claude iOS intents](https://support.claude.com/en/articles/10263469)
 4. **ChatGPT / Gemini:** no official prefill URL. Community Shortcuts exist; do not treat `?q=` or `googlegemini://` as a contract.
 5. **Codex on phone** lives **inside ChatGPT** after QR-pair to a host. `codex://` is **desktop**. [Work with Codex from anywhere](https://openai.com/index/work-with-codex-from-anywhere/)
 6. **Antigravity** is Google’s **desktop agent IDE** (2025–26), not Gemini iOS widgets. Mobile = **browser Remote Control** of a desktop. [Antigravity](https://antigravity.google/) · [Remote Control](https://antigravity.google/docs/remote-control/)
-7. **Custom keyboard** can `insertText` into the **focused** composer after the user switches keyboards. Must not launch other apps ([Review 4.4.1](https://developer.apple.com/app-store/review/guidelines/)).
+7. **Custom keyboard** can `insertText` into the **focused** composer after the user switches keyboards. Must not launch other apps ([Review 4.4.1](https://developer.apple.com/app-store/review/guidelines/)). Network / shared container needs **Full Access**; the keyboard must still work if the user declines. Memory budget is tighter than the host app.
 
 ### Transcribe
 
 | Path | On-device? | Notes |
 |---|---|---|
-| [SpeechAnalyzer / SpeechTranscriber](https://developer.apple.com/documentation/speech/speechanalyzer) | Yes (Apple: modules do not send audio to Apple) | iOS 26+ |
-| [SFSpeechRecognizer](https://developer.apple.com/documentation/speech/sfspeechrecognizer) + `requiresOnDeviceRecognition` | Only if flagged | ~1 minute cap; default path **does** send audio to Apple |
+| [SpeechAnalyzer / SpeechTranscriber](https://developer.apple.com/documentation/speech/speechanalyzer) | Yes — [Apple: transcriber modules do not send voice audio to Apple](https://developer.apple.com/documentation/speech/asking-permission-to-use-speech-recognition) | iOS 26+ (live-capture helper in the current sample is iOS 27) |
+| [SFSpeechRecognizer](https://developer.apple.com/documentation/speech/sfspeechrecognizer) + `requiresOnDeviceRecognition` | Only if flagged **and** `supportsOnDeviceRecognition` | Default / server path **may** send audio to Apple and is the ~1 minute / rate-limited path. On-device flag is not that cap |
 | [WhisperKit](https://github.com/argmaxinc/WhisperKit) (MIT) | Yes | iOS 16+ |
 | [whisper.cpp](https://github.com/ggml-org/whisper.cpp) (MIT) | Yes | Official iOS samples |
 
 **v1:** user taps Talk → on-device STT → we send **text** (not audio) to our backend. Orange mic indicator. Do not start the mic at launch.
 
-**Wake word:** only supported always-on entry is **Hey Siri → our App Shortcut**. A custom “Listen me” with the screen off fails Review 2.5.4 / 2.5.14.
+**Wake word:** honest v1 is **Hey Siri → our App Shortcut**, or a user-made [Vocal Shortcut](https://support.apple.com/guide/iphone/iph7f242ea2c/ios). A custom always-on “Listen me” with the screen off fails Review **2.5.4** (intended purpose / battery), not because 2.5.14 bans wake words.
 
 Auto-assign tasks from a transcript is **our NLP**, not an Apple entitlement.
 
@@ -206,7 +216,7 @@ These are **different products**. Building all of them at once is how this dies.
 
 ### A. Keep shipping the existing web orb (already in repo)
 
-PWA. Tap Talk. Typed text → `speechSynthesis`. BYO Gemini key (already). Hindi chrome already on `cursor/green-team-voice-79c8`.
+PWA. Tap Talk. Typed text → `speechSynthesis` (prefer `localService`). Green-team already has **BYO Gemini** *and* a **hosted Live token mint** when the server holds `GEMINI_API_KEY`. Hindi chrome already on `cursor/green-team-voice-79c8`.
 
 **This is the only slice that already has code.**
 
@@ -226,11 +236,23 @@ Supabase/Firebase are optional when you need non-Apple accounts. They are not re
 
 ## Recommended first slice (this agent’s answer)
 
-Until you confirm the grill below, **do not start C or a Swift rewrite**.
+**This is the decision gate. §15 is the expansion order after you pick.** Until Q1–Q7 are answered, **do not start C or a Swift rewrite**.
 
-1. If the goal is “typed note bolke sunao” → **A**: Web Speech Synthesis on the existing orb.
-2. If the goal is “iPhone pe meri voice, Share to Claude” → **B** without overlay, without wake word, without last-5-chats.
-3. If the goal is “team tasks + Claude Code EOD” → **C** API + MCP, Telegram not WhatsApp.
+### Grill Q1–Q7 (answer these)
+
+1. **First product:** A voice orb, B iOS personal assistant, or C team cowork (2–10)?
+2. **Model money:** BYO key (local/demo), we bill, or user-owned proxy? (Plus-login is out.)
+3. **First slice inside that product:** typed TTS, Talk+Share, or task API?
+4. **Hermes:** none / user-hosted on their laptop or VPS / Nous Cloud / we host for strangers? (Stranger-host needs isolation you do not have.)
+5. **Budget:** skip / household ledger + email forward + confirm?
+6. **Team chat:** none / Telegram / WhatsApp Cloud later (not Baileys, not personal inbox)?
+7. **Key custody:** Keychain per device / Worker holds the key (we can see it) / user’s own Worker?
+
+### After Q1
+
+1. If Q1 = **A** (“typed note bolke sunao”) → Web Speech Synthesis on the existing orb. Do **not** start C.
+2. If Q1 = **B** (“iPhone pe meri voice, Share to Claude”) → SwiftUI Talk+Share, no overlay, no custom always-on wake word, no last-5-chats.
+3. If Q1 = **C** (“team tasks + Claude Code EOD”) → **then** the §15 API + OpenAPI + MCP path, Telegram not WhatsApp.
 
 Hermes-per-user, SMS budget, ChatGPT Plus-inside-app, floating dock over other apps: **document as blocked or later**, do not prototype as if they were APIs.
 
@@ -293,8 +315,8 @@ OpenAI and Gemini official docs: **do not put production API keys in mobile/web 
 
 | Mode | Auto-config | Multi-device | We see the key? |
 |---|---|---|---|
-| **A. Keychain / Keystore, phone → vendor** | Paste once per device | Paste again | No |
-| **B. Worker / D1 stores the key** | Yes | Yes | **Yes** (Worker decrypts) |
+| **A. Keychain / Keystore, phone → vendor** | Paste once per device | Paste again | No (still extractable from a **web** tab; use native Keychain or ephemeral mint) |
+| **B. Worker / D1 stores the key** | Yes | Yes | **Yes** (Worker decrypts). This is the hosted mint already on green-team |
 | **C. User’s own Worker URL** | They deploy | Yes | We never hold it |
 
 Do not claim “encrypted in KV so we never see it” while our Worker holds the unwrap key.
@@ -309,11 +331,13 @@ Cloudflare [Workers](https://developers.cloudflare.com/workers/) / [D1](https://
 
 `main` is the raw AI Studio “Copy of Audio Orb.”
 
-All voice-product work is on **`cursor/green-team-voice-79c8`**: Talk UI, BYO Gemini, hosted Live token mint, transcripts, session machine, mobile runtime, ~73 tests.
+All voice-product work is on **`cursor/green-team-voice-79c8`**: Talk UI, BYO Gemini, hosted Live token mint, transcripts, session machine, mobile runtime, **80 tests** in 24 files (as of `1943883`).
 
-**Does not exist anywhere in the repo:** tasks DB, user accounts, MCP, iOS/Android native, WhatsApp, Hermes host, budget, team sync.
+`visual-3d.ts` **already exists on `main`** (`IcosahedronGeometry(1, 10)` + UnrealBloomPass). Green-team lowered the orb to `(1, 6)` and dropped bloom; session-phase colors and dual analysers are the productized skin.
 
-Reuse green-team audio/session/transcript. Everything in sections 1–13 is net-new product.
+**Does not exist anywhere in the repo:** tasks DB, user accounts, MCP, iOS/Android native, WhatsApp, Hermes host, budget, team sync. This repo has **no root `LICENSE`** (only per-file Apache-2.0 SPDX on visual files). Add a `LICENSE` + third-party notices before copying MIT/BSD/Apache snippets.
+
+Reuse green-team audio/session/transcript. **Slice A TTS is not net-new.** Accounts, MCP, iOS, Hermes host, and budget in sections 1–13 **are**.
 
 ---
 
@@ -380,10 +404,12 @@ From **green-team**: Talk UI, BYO Gemini, transcript store, session machine, mob
 
 ### Recommended ship order (owner)
 
-1. Keep the orb honest (TTS for typed text if they still want that).
-2. Task API + login + OpenAPI (this unblocks MCP, Telegram, EOD).
-3. iOS SwiftUI Talk+Share **or** PWA — not both first.
-4. Family ledger and Hermes-per-profile only after 2 exists.
+This is **expansion after Q1**, not a second first-slice. If Q1 = A, stop after step 1 until you explicitly pick C.
+
+1. Keep the orb honest (TTS for typed text if they still want that) — only if Q1 = A or you are already shipping the orb.
+2. **Only if Q1 = C:** Task API + login + OpenAPI on **one** store (name it: D1 if we stay on Workers; Postgres if we leave Workers). This unblocks MCP, Telegram, EOD.
+3. **Only if Q1 = B:** iOS SwiftUI Talk+Share. Do not also start a PWA rewrite.
+4. Family ledger and Hermes only after the store in step 2 exists, and only if Q4 / Q5 say yes. Hermes = user-hosted or separate container per trust domain — not “one Docker, many strangers.”
 
 ---
 
@@ -401,13 +427,13 @@ Sibling FACT notes (other branches, not merged here): Three.js orbs, Pipecat/Liv
 
 | Pattern | How Hermes does it | What Taskkorb should do |
 |---|---|---|
-| One runtime, many users | Docker/CLI + **profiles** (`HERMES_HOME`, `~/.hermes/profiles/<id>/`). Official: **one container, all profiles**. Two processes on one home **corrupt memory**. [Profiles](https://hermes-agent.nousresearch.com/docs/user-guide/profiles) · [Docker](https://hermes-agent.nousresearch.com/docs/user-guide/docker) | **One** hosted Hermes. One profile per household or per person — **not** a VM per user |
+| One runtime, many users | Docker/CLI + **profiles** (`HERMES_HOME`, `~/.hermes/profiles/<id>/`). Official: one container *can* host all profiles. Profiles **do not sandbox**. Two writers on one home entangle state. [Profiles](https://hermes-agent.nousresearch.com/docs/user-guide/profiles) · [Docker](https://hermes-agent.nousresearch.com/docs/user-guide/docker) | **One trust domain per process.** One family on a host they own, or separate containers/volumes/credentials. Not “one Docker for all Taskkorb users” |
 | Self-evolving | Skills + `MEMORY.md` / `USER.md` / `SOUL.md` / `AGENTS.md`. Prompt says learn permanently; cron can propose skill changes | Copy the **files + human review loop**. Do **not** let the model rewrite spend rules or the system prompt unsigned |
 | Memory other agents can call | Gateway + `message_agent` + OpenAI-compat **`:8642/v1`** + optional MCP / Honcho | Host Hermes; Taskkorb talks HTTP/MCP. Budget/task specialists stay **in-process functions** first |
 | Voice / “ball” | Desktop: chat + **mic level bars**, optional “Hey Hermes”. **No 3D orb** in the official UI | Keep Taskkorb’s Three.js orb. Hermes is the **brain**, not the ball |
-| Mobile | Telegram / HTTP client / Termux. **No App Store Hermes SDK** | Never ship Hermes Python **inside** the iOS IPA. Phone = Talk + API |
+| Mobile | Telegram / HTTP client / Termux. **No App Store Hermes SDK** | Never ship Hermes skills+shell **inside** the iOS IPA. Phone = Talk + API. Goose AI is a thin remote client, not a template to embed Goose |
 
-**Must still host (cannot skip):** the Hermes **process**, an **LLM bill** (OpenRouter / Nous Portal / local), and **disk** for `~/.hermes`. Hermes is not a SaaS login and is not `hermes.ai` as a plug-in.
+**Must still have (cannot skip) unless they buy [Hermes Cloud](https://portal.nousresearch.com/cloud):** the Hermes **process**, an **LLM bill** (OpenRouter / Nous Portal / local), and **disk** for `~/.hermes`. Cloud is Nous’s hosted instance — not Taskkorb minting tenants, not `hermes.ai` as a plug-in.
 
 **Do not copy blindly:** default `terminal` + `process` + `website` + `browser` + `cron` + `messaging` + `spawn` is a **personal computer agent**. Lock those tools for a family-budget product.
 
@@ -415,20 +441,20 @@ Sibling FACT notes (other branches, not merged here): Three.js orbs, Pipecat/Liv
 
 ### 16.2 The ball — who actually has one
 
-Taskkorb already **is** the ball (`visual-3d.ts` on `cursor/green-team-voice-79c8`): Lit + Three.js `IcosahedronGeometry(1, 10)`, FFT **32**, dual analysers (mic + model), session-phase colors. Apache-2.0 visual files.
+Taskkorb already **is** the ball. `visual-3d.ts` on **`main`**: `IcosahedronGeometry(1, 10)` + UnrealBloomPass. On **`cursor/green-team-voice-79c8`**: orb is `(1, 6)`, bloom **removed**, FFT **32**, dual analysers (mic + model), session-phase colors. Visual files SPDX Apache-2.0; repo root has no `LICENSE`.
 
 Hermes does **not** ship a ball. Pipecat and LiveKit Agents official docs **do not name an orb**.
 
 | Project | License | What it is | Copy |
 |---|---|---|---|
-| **This repo** (`visual-3d.ts`) | Apache-2.0 | Icosahedron + bloom + sine displacement | **Keep. This is the product ball.** |
-| [desertcache/velvet](https://github.com/desertcache/velvet) | MIT | Electron STT + Three.js “SoulOrb”. `fftSize` 512 → **mean of all bins** + noise gate. States `IDLE\|LISTENING\|PROCESSING\|SPEAKING` lerp colors/morph. High-res `SphereGeometry` + simplex | Voice-band average, gate, **lerp visual states** |
-| [kuhung/audiovisualizer](https://github.com/kuhung/audiovisualizer) | MIT (fork; parent [WaelYasmina/audiovisualizer](https://github.com/WaelYasmina/audiovisualizer) has **no LICENSE** — do not copy the parent) | `IcosahedronGeometry(3, 30)` + bloom + Perlin × average frequency | Organic lumps; keep our dual analysers |
+| **This repo** (`visual-3d.ts`) | Apache-2.0 file headers | Green-team: icosahedron `(1, 6)`, sine displacement, **no bloom**. `main` still has bloom + `(1, 10)` | **Keep green-team. This is the product ball.** |
+| [desertcache/velvet](https://github.com/desertcache/velvet) | MIT (1★ — tiny) | Electron STT + Three.js “SoulOrb”. `fftSize` 512 → **mean of all bins** + noise gate. States `IDLE\|LISTENING\|PROCESSING\|SPEAKING` lerp colors/morph | Gate + **lerp visual states**. Voice-band weighting is **ours**, not velvet’s |
+| [kuhung/audiovisualizer](https://github.com/kuhung/audiovisualizer) | Fork of unlicensed [WaelYasmina/audiovisualizer](https://github.com/WaelYasmina/audiovisualizer). Downstream MIT **cannot** relicense the parent | `IcosahedronGeometry(3, 30)` + bloom + Perlin × average frequency | **Ideas only.** Do not copy the tree |
 | [dcyoung/r3f-audio-visualizer](https://github.com/dcyoung/r3f-audio-visualizer) | MIT | R3F `fluidBall`: `fftSize` 8192 → 1/12-octave bars → **polar radius**. Desktop-heavy | Spectrum-on-surface later; keep `fftSize` modest on phone |
 | [nehasriva/phonon](https://github.com/nehasriva/phonon) | MIT | 800 Fibonacci particles, one bin per particle | Soft “thinking cloud” skin |
 | [soniaboller/audible-visuals](https://github.com/soniaboller/audible-visuals) | Apache-2.0 | Radial **lines**, not a closed mesh. Old CanvasRenderer — do not copy the stack | Spike silhouette only |
-| [pipecat-ai/pipecat](https://github.com/pipecat-ai/pipecat) + Voice UI Kit | BSD-2-Clause | Voice pipeline. Visual = **bars** / optional **circle**. Events: `UserStartedSpeaking`, `BotStartedSpeaking`, `LocalAudioLevel` / `RemoteAudioLevel`. [UIWorker](https://docs.pipecat.ai/pipecat/learn/ui-worker) mutates **this** app’s GUI | Session FSM + levels → **our** orb. Not an overlay |
-| [livekit/agents](https://github.com/livekit/agents) | Apache-2.0 | `lk.agent.state` = `listening\|thinking\|speaking`. Closest official widgets: **Aura** (shader field) and **Radial** (circle). ChatGPT voice uses LiveKit ([customers](https://livekit.io/customers)) | Copy the **state+volume contract**. Leave Gemini Live unless we switch stacks |
+| [pipecat-ai/pipecat](https://github.com/pipecat-ai/pipecat) + Voice UI Kit | BSD-2-Clause | Voice pipeline. Visual = **bars** / optional **circle**. Events: `UserStartedSpeaking`, `BotStartedSpeaking`, levels. [UIWorker](https://docs.pipecat.ai/pipecat/learn/ui-worker) is a **server LLM that drives this page** (click/type/scroll) — not an orb | Copy **events + levels** into our orb. Do not treat UIWorker as a visualizer |
+| [livekit/agents](https://github.com/livekit/agents) | Apache-2.0 | `lk.agent.state` = `listening\|thinking\|speaking`. Closest official widgets: **Aura** and **Radial**. LiveKit **lists** OpenAI as a customer ([customers](https://livekit.io/customers)); OpenAI’s 2026 GPT-Live writeup may age that claim | Copy the **state+volume contract**. Leave Gemini Live unless we switch stacks |
 
 **Looked at, do not copy:** [patrickheng/three-js-audio-experiment-v2](https://github.com/patrickheng/three-js-audio-experiment-v2) (CC BY-NC-SA 4.0); amunozdev/voiceorbs (React, not Three); mahdidavoodi7/expo-thinking-orbs (Skia).
 
@@ -440,16 +466,18 @@ Hermes does **not** ship a ball. Pipecat and LiveKit Agents official docs **do n
 |---|---|---|---|
 | Searchable user memory | [mem0ai/mem0](https://github.com/mem0ai/mem0) | Apache-2.0 OSS; Platform is paid. Official: **never put the key in the browser**. [API](https://docs.mem0.ai/api-reference) | After a backend exists: `add` then `search` with `user_id`. Platform `https://api.mem0.ai` **or** OSS Docker `:8888` (`cd server && make bootstrap`). Official voice pattern: [LiveKit + Mem0](https://docs.mem0.ai/integrations/livekit) |
 | Local MCP memory | OpenMemory | **Sunset.** Docs 404; folder gone from `main`; last README says use OSS server. [Historical README](https://raw.githubusercontent.com/mem0ai/mem0/3e6ab394/openmemory/README.md) | **Do not build on it** |
-| Hosted “memory API” without running their server | [Honcho](https://honcho.dev/) | **Server AGPL-3.0**; SDKs often Apache. Hermes already plugs in | Call **Honcho Cloud** if needed. Do **not** vendor the server |
+| Hosted “memory API” without running their server | [Honcho](https://honcho.dev/) ([plastic-labs/honcho](https://github.com/plastic-labs/honcho)) | **Server AGPL-3.0**. Some SDKs Apache — check the package, not the monorepo `LICENSE` | Call **Honcho Cloud** if needed. Do **not** vendor the server |
 | Agent with built-in memory | [letta-ai/letta](https://github.com/letta-ai/letta) | Apache-2.0 | Optional later. Not Todoist |
-| Coding agent that already speaks MCP | [aaif-goose/goose](https://github.com/aaif-goose/goose) (`block/goose` redirects) | **Apache-2.0** in `LICENSE`. Homepage “MIT licensed” is **wrong**. AAIF / Linux Foundation (9 Dec 2025) | Be a **remote Streamable HTTP MCP** they attach (`goose://extension?url=…&type=streamable_http`). Do not embed Goose. Desktop QR tunnel is **removed**. Archived Android “take over the phone” — do not copy |
+| Coding agent that already speaks MCP | [aaif-goose/goose](https://github.com/aaif-goose/goose) (`block/goose` redirects) | **Apache-2.0** in `LICENSE`. Marketing pages have said “MIT” — **trust the file**. AAIF / Linux Foundation (9 Dec 2025) | Be a **remote Streamable HTTP MCP** they attach (`goose://extension?url=…&type=streamable_http`). Do not embed Goose. Desktop QR tunnel is **removed**. Android “take over the phone” is an **experimental PoC**, not archived — still do not copy |
 | Chat UI in front of Hermes | [open-webui/open-webui](https://github.com/open-webui/open-webui) | Branding-gated license after 0.6.6. Hermes docs: `OPENAI_BASE_URL=http://127.0.0.1:8642/v1` | Fine on **your** laptop. Mobile = PWA, not a native dock |
 
 **A2A vs MCP (official):** MCP = agent-to-**tool**. [A2A](https://a2a-protocol.org/latest/) = independent services. A2A is **not** a sub-agent protocol. OpenAI Agents SDK **handoffs** stay in one process. For 2–10 people: **in-process specialists + MCP for tools**. No Agent Card mesh between household bots.
 
 ### 16.4 MCP — we are the server
 
-Continue / Cline / Cursor / Claude Code / Codex / Goose are **clients**. Taskkorb ships **hosted Streamable HTTP** (`https://…/mcp` + Bearer / later OAuth 2.1). Aider has **no official MCP**. stdio is a laptop hack.
+Continue / Cline / Cursor / Claude Code / Codex / Goose are **clients**. Taskkorb ships **hosted Streamable HTTP**. Same auth as §4: short-lived scoped token for a private laptop demo; **OAuth 2.1** for team write. Aider has **no merged official MCP** as of Aug 2026 (open PRs exist — do not plan on them). stdio is a laptop hack.
+
+Cline-style example only (`"type": "streamableHttp"`). Claude Code uses `--transport http` / `"type": "http"`. Goose uses `type=streamable_http`. Label the client before pasting.
 
 ```json
 {
@@ -457,7 +485,7 @@ Continue / Cline / Cursor / Claude Code / Codex / Goose are **clients**. Taskkor
     "taskkorb": {
       "type": "streamableHttp",
       "url": "https://…/mcp",
-      "headers": { "Authorization": "Bearer <token>" }
+      "headers": { "Authorization": "Bearer <short-lived-demo-token>" }
     }
   }
 }
@@ -485,13 +513,13 @@ Official Bot API: [core.telegram.org/bots](https://core.telegram.org/bots). Toke
 | [ihoru/todoist_bot](https://github.com/ihoru/todoist_bot) | MIT | Per-user Todoist OAuth — **not** a shared board |
 | [5hay/tg2notion](https://github.com/5hay/tg2notion) | MIT | Write-only; unofficial Notion cookie — do not copy that auth |
 
-**Ship:** BotFather → webhook → commands + inline Done → **our** task API (`chat.id` / `from.id` mapped to users). Hermes already speaks Telegram as an **agent gateway**, not a tracker.
+**Ship:** BotFather → webhook (`secret_token` + `X-Telegram-Bot-Api-Secret-Token`) → commands + inline Done → **our** task API. Map `chat.id` / `from.id` only after an **expiring link** to a Taskkorb user; still check ACLs. For ambient group text, disable Privacy Mode or require `/commands`. Hermes already speaks Telegram as an **agent gateway**, not a tracker.
 
 ### 16.6 Budget OSS — contracts, not AGPL servers
 
 | App | License | Official email/SMS | Household share |
 |---|---|---|---|
-| [actualbudget/actual](https://github.com/actualbudget/actual) | **MIT** | Neither. File import + optional bank sync | Local-first file; “avoid simultaneous usage” |
+| [actualbudget/actual](https://github.com/actualbudget/actual) | **MIT** | Neither. File import + optional bank sync | Local-first file; multi-device sync with **conflict risk** on concurrent edits ([sync](https://actualbudget.org/docs/getting-started/sync/)) |
 | [firefly-iii/firefly-iii](https://github.com/firefly-iii/firefly-iii) | **AGPL-3.0** | Outbound SMTP only. Community “send an SMS” ≠ inbox read. Author **refuses official AI categories** (hallucinate) | Isolated administrations; couples = **shared password** until sharing ships |
 | GnuCash / Sure / Ghostfolio | GPL / AGPL | No official iOS SMS | Wrong job or AGPL |
 
@@ -499,10 +527,10 @@ Official Bot API: [core.telegram.org/bots](https://core.telegram.org/bots). Toke
 
 ### 16.7 Notes / cowork OSS (if the product is a workspace)
 
-- [AppFlowy-IO/AppFlowy](https://github.com/AppFlowy-IO/AppFlowy) — AGPL + ELv2. Inspiration for the **surface**, or self-host. Do not relicense.
-- [toeverything/AFFiNE](https://github.com/toeverything/AFFiNE) — MIT/EL mix; cloud ~10-seat. Closer to small-team notes than Logseq.
+- [AppFlowy-IO/AppFlowy](https://github.com/AppFlowy-IO/AppFlowy) — **AGPL-3.0** (client and Cloud repos). Self-host cloud has a **separate commercial** license, **not** Elastic License 2.0. Inspiration for the **surface**, or self-host. Do not relicense.
+- [toeverything/AFFiNE](https://github.com/toeverything/AFFiNE) — MIT editor + **AFFiNE Enterprise Edition** on `packages/backend` (not Elastic License). Cloud ~10-seat. Closer to small-team notes than Logseq.
 - [outline/outline](https://github.com/outline/outline) — BSL. Docs API if the team is **wiki**, not tasks.
-- Logseq Sync is **not** multi-person cowork (their FAQ).
+- Logseq **file Sync** is single-user ([2023 setup](https://blog.logseq.com/how-to-setup-and-use-logseq-sync/)). Logseq **DB / RTC** is paid/alpha multi-person — still not a tasks product.
 
 ### 16.8 iOS speech v1
 
@@ -512,22 +540,24 @@ Official Bot API: [core.telegram.org/bots](https://core.telegram.org/bots). Toke
 
 Apple [SpeechAnalyzer](https://developer.apple.com/documentation/speech/speechanalyzer) — iOS **26+** (live helper sample iOS 27). Official: transcriber modules **do not** send voice to Apple. Use later as optional path, not the floor.
 
-Default [SFSpeechRecognizer](https://developer.apple.com/documentation/speech/sfspeechrecognizer) **does** send audio to Apple unless `requiresOnDeviceRecognition`.
+Default [SFSpeechRecognizer](https://developer.apple.com/documentation/speech/sfspeechrecognizer) **may** send audio to Apple unless `requiresOnDeviceRecognition` is set **and** available.
 
-### 16.9 What we still invent (no honest OSS clone)
+### 16.9 Requests with no honest OSS path (blocked — see Hard facts)
 
-Floating iOS dock over Claude/ChatGPT, last-5-chats from other apps, ChatGPT Plus as an API key, WhatsApp personal inbox, Hermes-inside-App-Store, Xiaomi “SS bol” as a public wake-word SDK.
+These are **not** a backlog: floating iOS dock over Claude/ChatGPT, last-5-chats from other apps, ChatGPT Plus as an API key, WhatsApp personal inbox / Baileys, Hermes-inside-App-Store, Xiaomi “SS bol” as a public wake-word SDK.
 
-### 16.10 Steal-list for the first slices (still needs grill Q1–Q7)
+### 16.10 Steal-list (only after grill Q1–Q7)
 
-1. **Orb:** keep green-team `visual-3d.ts`; steal velvet state lerp + voice-band gate if we want a second skin.
-2. **Typed → voice:** `speechSynthesis` on the web orb (no new OSS).
-3. **iOS v1:** WhisperKit + share sheet.
-4. **Tasks API + MCP:** our Postgres + Streamable HTTP, shaped like `mcp-tasks` / Todoist MCP / Cline’s remote JSON.
-5. **Telegram:** Bot API + our store (Kanboard/Vikunja as reference).
+Do not start items 4–8 unless Q1 = C (or Q5/Q4 explicitly yes).
+
+1. **Orb:** keep green-team `visual-3d.ts` (`(1, 6)`, no bloom); steal velvet **state lerp + noise gate** if we want a second skin.
+2. **Typed → voice:** `speechSynthesis` on the web orb; prefer `localService === true` (no new OSS).
+3. **iOS v1:** WhisperKit + share sheet (only if Q1 = B).
+4. **Tasks API + MCP (only if Q1 = C):** one named store (D1 on Workers **or** Postgres — pick; do not imply both) + Streamable HTTP + OAuth 2.1, shaped like `mcp-tasks` / [Todoist MCP](https://github.com/Doist/todoist-mcp) / [Cline remote HTTP](https://docs.cline.bot/mcp/mcp-overview).
+5. **Telegram (only if Q6 = Telegram):** Bot API + our store + webhook secret (Kanboard/Vikunja as reference).
 6. **Memory (optional):** Mem0 Platform or OSS REST; or Honcho **Cloud**. Not OpenMemory.
-7. **Hermes (only if Q4 = yes):** one Docker, many profiles, gateway only, tools locked.
-8. **Budget:** Actual-like ledger in **our** DB; Firefly only as optional user backend.
+7. **Hermes (only if Q4 = user-hosted or Nous Cloud):** gateway only, tools locked, **one trust domain**. See §2 / §16.1 — not “one Docker, many strangers.”
+8. **Budget (only if Q5 = yes):** Actual-like ledger in **our** DB; Firefly only as optional user backend.
 
 ---
 
@@ -538,7 +568,9 @@ Floating iOS dock over Claude/ChatGPT, last-5-chats from other apps, ChatGPT Plu
 - Live Gemini on a physical phone for the current orb is still **UNVERIFIED** from earlier work.
 - No durable host or user-auth in this environment. This note does not invent one.
 - CASA / Play exception **prices and approval odds** are not official numbers; do not quote blogs as Google policy.
-- A domain literally `hermes.ai` as a plug-in SaaS was **not found**. Closest official product is Nous Hermes Agent.
+- A domain literally `hermes.ai` as a plug-in SaaS was **not found**. Closest official products are Nous Hermes Agent and [Hermes Cloud](https://portal.nousresearch.com/cloud).
+- The old Gemini “Advanced ≠ API” community thread (`support.google.com/gemini/thread/342070024`) now **404s**. Use [Gemini API billing](https://ai.google.dev/gemini-api/docs/billing).
+- 18-model review (26 Aug 2026) corrected: Hermes profiles ≠ sandbox; AppFlowy/AFFiNE licenses; green-team orb `(1, 6)` / no bloom; grill Q1–Q7 inlined; MCP OAuth vs Bearer; BYO vs production keys; kuhung ideas-only; test count 80.
 
 ---
 
@@ -551,7 +583,6 @@ Floating iOS dock over Claude/ChatGPT, last-5-chats from other apps, ChatGPT Plu
 - [OpenAI Terms](https://openai.com/policies/row-terms-of-use/)
 - [Claude paid plan vs API](https://support.claude.com/en/articles/9876003)
 - [Claude Pro plan](https://support.claude.com/en/articles/8325606-what-is-the-pro-plan)
-- [Gemini Advanced API thread](https://support.google.com/gemini/thread/342070024)
 - [Gemini API keys](https://ai.google.dev/gemini-api/docs/api-key)
 - [Gemini API billing](https://ai.google.dev/gemini-api/docs/billing)
 - [Introducing apps in ChatGPT](https://openai.com/index/introducing-apps-in-chatgpt/)
@@ -561,6 +592,7 @@ Floating iOS dock over Claude/ChatGPT, last-5-chats from other apps, ChatGPT Plu
 **Hermes / agents / MCP**
 
 - [Hermes Agent docs](https://hermes-agent.nousresearch.com/docs/)
+- [Hermes Cloud](https://portal.nousresearch.com/cloud)
 - [Hermes GitHub](https://github.com/NousResearch/hermes-agent)
 - [Hermes Bot Mode](https://hermes-agent.nousresearch.com/docs/user-guide/bot-mode)
 - [Hermes API server](https://hermes-agent.nousresearch.com/docs/user-guide/features/api-server)
@@ -573,10 +605,12 @@ Floating iOS dock over Claude/ChatGPT, last-5-chats from other apps, ChatGPT Plu
 - [A2A protocol](https://a2a-protocol.org/latest/)
 - [Mem0](https://docs.mem0.ai/introduction)
 - [Honcho](https://honcho.dev/)
+- [plastic-labs/honcho](https://github.com/plastic-labs/honcho)
 
 **Chat / budget / stores**
 
 - [WhatsApp Cloud API](https://developers.facebook.com/documentation/business-messaging/whatsapp/about-the-platform)
+- [WhatsApp Groups API](https://developers.facebook.com/documentation/business-messaging/whatsapp/groups)
 - [Telegram bots](https://core.telegram.org/bots)
 - [Play SMS / Call Log](https://support.google.com/googleplay/android-developer/answer/10208820)
 - [Gmail scopes](https://developers.google.com/workspace/gmail/api/auth/scopes)
@@ -592,6 +626,9 @@ Floating iOS dock over Claude/ChatGPT, last-5-chats from other apps, ChatGPT Plu
 - [Custom keyboard](https://developer.apple.com/documentation/uikit/creating-a-custom-keyboard)
 - [Run a Shortcut from a URL](https://support.apple.com/guide/shortcuts/run-a-shortcut-from-a-url-apd624386f42/ios)
 - [SpeechAnalyzer](https://developer.apple.com/documentation/speech/speechanalyzer)
+- [Asking permission to use speech recognition](https://developer.apple.com/documentation/speech/asking-permission-to-use-speech-recognition)
+- [SpeechSynthesisVoice.localService](https://developer.mozilla.org/en-US/docs/Web/API/SpeechSynthesisVoice/localService)
+- [Vocal Shortcuts](https://support.apple.com/guide/iphone/iph7f242ea2c/ios)
 - [WhisperKit](https://github.com/argmaxinc/WhisperKit)
 - [Claude mobile links](https://support.claude.com/en/articles/14898120-open-the-claude-mobile-app-with-a-link)
 - [Work with Codex from anywhere](https://openai.com/index/work-with-codex-from-anywhere/)
@@ -621,6 +658,10 @@ Floating iOS dock over Claude/ChatGPT, last-5-chats from other apps, ChatGPT Plu
 - [NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent)
 - [Hermes profiles](https://hermes-agent.nousresearch.com/docs/user-guide/profiles)
 - [Hermes Docker](https://hermes-agent.nousresearch.com/docs/user-guide/docker)
+- [AppFlowy LICENSE](https://github.com/AppFlowy-IO/AppFlowy/blob/main/LICENSE)
+- [AFFiNE root LICENSE](https://github.com/toeverything/AFFiNE/blob/canary/LICENSE)
+- [Cline MCP overview](https://docs.cline.bot/mcp/mcp-overview)
+- [Goose AI on the App Store](https://apps.apple.com/app/goose-ai/id6752889295)
 - [desertcache/velvet](https://github.com/desertcache/velvet)
 - [kuhung/audiovisualizer](https://github.com/kuhung/audiovisualizer)
 - [dcyoung/r3f-audio-visualizer](https://github.com/dcyoung/r3f-audio-visualizer)
