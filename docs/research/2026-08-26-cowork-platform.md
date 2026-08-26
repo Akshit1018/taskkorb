@@ -189,10 +189,12 @@ Honest handoff:
 |---|---|---|
 | [SpeechAnalyzer / SpeechTranscriber](https://developer.apple.com/documentation/speech/speechanalyzer) | Yes (Apple: modules do not send audio to Apple) | iOS 26+ |
 | [SFSpeechRecognizer](https://developer.apple.com/documentation/speech/sfspeechrecognizer) + `requiresOnDeviceRecognition` | Only if flagged | ~1 minute cap; default path **does** send audio to Apple |
-| [WhisperKit](https://github.com/argmaxinc/WhisperKit) (MIT) | Yes | iOS 16+ |
-| [whisper.cpp](https://github.com/ggml-org/whisper.cpp) (MIT) | Yes | Official iOS samples |
+| [WhisperKit](https://github.com/argmaxinc/WhisperKit) (MIT) | Yes | iOS 16+ package; repo now [argmax-oss-swift](https://github.com/argmaxinc/argmax-oss-swift) |
+| [whisper.cpp](https://github.com/ggml-org/whisper.cpp) (MIT) | Yes | Official iOS samples (`whisper.objc` 16.0, `whisper.swiftui` 16.1) |
 
 **v1:** user taps Talk → on-device STT → we send **text** (not audio) to our backend. Orange mic indicator. Do not start the mic at launch.
+
+**v1 engine pick:** WhisperKit. Facts, licenses, and why not SpeechAnalyzer-only or whisper.cpp: [2026-08-26-ios-stt-v1.md](2026-08-26-ios-stt-v1.md).
 
 **Wake word:** only supported always-on entry is **Hey Siri → our App Shortcut**. A custom “Listen me” with the screen off fails Review 2.5.4 / 2.5.14.
 
@@ -448,7 +450,8 @@ From **green-team**: Talk UI, BYO Gemini, transcript store, session machine, mob
 - [Custom keyboard](https://developer.apple.com/documentation/uikit/creating-a-custom-keyboard)
 - [Run a Shortcut from a URL](https://support.apple.com/guide/shortcuts/run-a-shortcut-from-a-url-apd624386f42/ios)
 - [SpeechAnalyzer](https://developer.apple.com/documentation/speech/speechanalyzer)
-- [WhisperKit](https://github.com/argmaxinc/WhisperKit)
+- [WhisperKit / argmax-oss-swift](https://github.com/argmaxinc/argmax-oss-swift)
+- [iOS STT v1 pick](2026-08-26-ios-stt-v1.md)
 - [Claude mobile links](https://support.claude.com/en/articles/14898120-open-the-claude-mobile-app-with-a-link)
 - [Work with Codex from anywhere](https://openai.com/index/work-with-codex-from-anywhere/)
 - [Antigravity](https://antigravity.google/)
