@@ -5,7 +5,7 @@
 - Symptom: the orb already kept a transcript, but typed notes stayed silent. Owner locked Q1–Q7 (“do all”) with first slice = typed TTS.
 - Root Cause: Talk is Live audio only. There was no composer and no Web Speech path, so a note could not speak without a Gemini key.
 - Fix: typed composer on existing chrome; `speechSynthesis` with local-voice preference; cancel-before-speak so rapid sends do not stack; orb transcript speech only when Live PCM is not already playing. No Gemini key required to hear typed text.
-- Verification: unit tests for voice pick / utterance plan / cancel policy + copy. Browser path pending this revision.
+- Verification: 95 unit tests (14 new TTS helpers + copy), `tsc --noEmit`. Playwright on the key gate: typed submit invoked `speechSynthesis.speak` with the typed text (`en-US` and `hi-IN`) and no Gemini key. Headless Chrome exposed 0 voices, so `localService` pick was unit-tested only.
 
 ## 2026-08-24 Green Team credential-error loop
 
