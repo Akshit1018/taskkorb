@@ -21,4 +21,14 @@ describe('ui copy', () => {
       localizeStatus('Microphone was blocked. Allow it in the browser, then use Talk.', 'hi'),
     ).toMatch(/माइक्रोफ़ोन/);
   });
+
+  it('lets testers type a note without promising a Gemini key', () => {
+    expect(copy('en').typeNote).toMatch(/Type a note/);
+    expect(copy('en').speak).toBe('Speak');
+    expect(copy('en').typedHint).toMatch(/no Gemini key needed/i);
+    expect(copy('en').typedHint).not.toMatch(/paste a Gemini/i);
+    expect(copy('hi').typeNote).toMatch(/नोट/);
+    expect(copy('hi').speak).toBe('बोलो');
+    expect(copy('hi').typedHint).toMatch(/कुंजी नहीं/);
+  });
 });

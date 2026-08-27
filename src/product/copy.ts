@@ -116,6 +116,9 @@ export function copy(lang: UiLang) {
       you: 'आप',
       orb: 'ऑर्ब',
       confirmClear: 'इस ब्राउज़र से बातचीत साफ़ करें?',
+      typeNote: 'एक नोट लिखें',
+      speak: 'बोलो',
+      typedHint: 'नोट लिखें, आवाज़ में सुनें। Gemini कुंजी नहीं चाहिए।',
     };
   }
 
@@ -162,5 +165,8 @@ export function copy(lang: UiLang) {
     you: 'You',
     orb: 'Orb',
     confirmClear: 'Clear this conversation from this browser?',
+    typeNote: 'Type a note',
+    speak: 'Speak',
+    typedHint: 'Type a note to hear it out loud. No Gemini key needed.',
   };
 }
