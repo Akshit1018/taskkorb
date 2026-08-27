@@ -94,7 +94,7 @@ import './visual-3d';
 export class GdmLiveAudio extends LitElement {
   @state() apiKey = '';
   @state() keyDraft = '';
-  @state() editingKey = true;
+  @state() editingKey = false;
   @state() authMode: 'unknown' | 'hosted' | 'byo' = 'unknown';
   @state() connectInFlight = false;
   @state() sessionState: SessionSnapshot = INITIAL_SESSION;
