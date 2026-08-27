@@ -38,6 +38,7 @@ export class GdmLiveAudioVisuals3D extends LitElement {
 
   @property() phase: SessionPhase = 'locked';
   @property({type: Boolean}) reducedMotion = false;
+  @property({type: Boolean}) private webglReady = false;
 
   private _outputNode?: AudioNode;
 
@@ -90,6 +91,23 @@ export class GdmLiveAudioVisuals3D extends LitElement {
       position: absolute;
       inset: 0;
       image-rendering: pixelated;
+    }
+
+    canvas[data-ready='false'] {
+      opacity: 0;
+    }
+
+    .orb-fallback {
+      position: absolute;
+      left: 50%;
+      top: 42%;
+      width: min(58vw, 280px);
+      height: min(58vw, 280px);
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 32% 28%, #8b8ba8 0%, #2a2a40 42%, #0a0a12 72%);
+      box-shadow: 0 0 90px 20px rgba(80, 80, 120, 0.35);
     }
   `;
 
@@ -323,9 +341,12 @@ export class GdmLiveAudioVisuals3D extends LitElement {
 
     if (this.enhance) {
       this.enhance.composer.render();
-      return;
+    } else {
+      this.renderer.render(this.scene, this.camera);
     }
-    this.renderer.render(this.scene, this.camera);
+    if (!this.webglReady) {
+      this.webglReady = true;
+    }
   }
 
   protected firstUpdated() {
@@ -347,7 +368,10 @@ export class GdmLiveAudioVisuals3D extends LitElement {
   }
 
   protected render() {
-    return html`<canvas></canvas>`;
+    return html`
+      ${this.webglReady ? '' : html`<div class="orb-fallback" aria-hidden="true"></div>`}
+      <canvas data-ready=${this.webglReady ? 'true' : 'false'}></canvas>
+    `;
   }
 }
 
