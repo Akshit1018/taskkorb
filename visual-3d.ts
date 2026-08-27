@@ -132,7 +132,7 @@ export class GdmLiveAudioVisuals3D extends LitElement {
       antialias: false,
     });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(window.devicePixelRatio / 1);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 
     const geometry = new THREE.IcosahedronGeometry(1, 10);
 
