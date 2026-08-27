@@ -78,5 +78,32 @@ describe('fetchHostedCredential', () => {
     expect(waits).toEqual([1000]);
     expect(result).toEqual({mode: 'hosted', token: 'auth_tokens/retry', expireTime: undefined});
   });
+
+  it('surfaces a 402 paywall as an error so BYO remains the free path', async () => {
+    const result = await fetchHostedCredential(async () =>
+      jsonResponse(402, {
+        available: true,
+        error: 'Pay for the hosted orb with PayPal or PhonePe, or paste a Gemini key.',
+      }),
+    );
+    expect(result.mode).toBe('error');
+    if (result.mode === 'error') {
+      expect(result.message).toMatch(/PayPal or PhonePe/);
+    }
+  });
+
+  it('sends the billing claim header when one is stored', async () => {
+    let sent = '';
+    await fetchHostedCredential(
+      async (_url, init) => {
+        sent = new Headers(init?.headers).get('x-taskkorb-claim') ?? '';
+        return jsonResponse(200, {available: false});
+      },
+      async () => undefined,
+      4000,
+      'clm_test',
+    );
+    expect(sent).toBe('clm_test');
+  });
 });
 

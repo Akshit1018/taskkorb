@@ -4,6 +4,8 @@ import type {Plugin} from 'vite';
 import {issuerClientIp} from '../auth/client-ip';
 import {buildTokenCreateConfig, readMintedToken} from '../auth/mint-token';
 import {checkMintRate, pruneMintLog} from '../auth/mint-rate-limit';
+import {canMintWithEntitlement, claimOrder} from '../billing/orders';
+import {billingConfig, billingStore} from './billing';
 
 const lastMintByIp = new Map<string, number>();
 
@@ -41,6 +43,16 @@ function attachIssuer(
 
     const ip = issuerClientIp(req);
     const now = Date.now();
+    const billing = billingConfig();
+    const claim = String(req.headers['x-taskkorb-claim'] ?? '');
+    const entitlement = claimOrder(billingStore, claim, now);
+    if (!canMintWithEntitlement({enforce: billing.enforce, entitlement, now})) {
+      writeJson(res, 402, {
+        available: true,
+        error: 'Pay for the hosted orb with PayPal or PhonePe, or paste a Gemini key.',
+      });
+      return;
+    }
     const rate = checkMintRate(lastMintByIp.get(ip) ?? 0, now);
     if (rate.allowed === false) {
       res.setHeader('Retry-After', String(Math.ceil(rate.retryAfterMs / 1000)));

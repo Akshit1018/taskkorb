@@ -24,6 +24,8 @@ export function talkHint(talkMode: 'hold' | 'tap', lang: UiLang): string {
 
 const STATUS_HI: Record<string, string> = {
   'Add a Gemini API key to begin.': 'शुरू करने के लिए Gemini कुंजी डालें।',
+  'Demo mode. Talk to hear a sample. This is not Gemini.':
+    'डेमो मोड। सैंपल सुनने के लिए बात दबाएँ। यह Gemini नहीं है।',
   'Connecting to the orb…': 'ऑर्ब से जुड़ रहे हैं…',
   'Connected. Hold Talk and speak.': 'जुड़ गया। बात दबाकर रखें और बोलें।',
   'Requesting microphone access…': 'माइक्रोफ़ोन की अनुमति माँग रहे हैं…',
@@ -119,6 +121,19 @@ export function copy(lang: UiLang) {
       typeNote: 'एक नोट लिखें',
       speak: 'बोलो',
       typedHint: 'नोट लिखें, आवाज़ में सुनें। Gemini कुंजी नहीं चाहिए।',
+      payTitle: 'होस्टेड ऑर्ब',
+      payHint: 'PayPal या PhonePe से महीने का सेशन लो। या अपनी Gemini कुंजी डालो — वह मुफ़्त रहती है।',
+      payEmail: 'रसीद के लिए ईमेल',
+      payMonthly: 'महीने का ऑर्ब',
+      payCredits: '६० मिनट क्रेडिट',
+      payPaypal: 'PayPal',
+      payPhonepe: 'PhonePe',
+      paying: 'पेमेंट खुल रहा है…',
+      paidHosted: 'पेमेंट मिल गई। होस्टेड ऑर्ब जोड़ रहे हैं…',
+      closeGate: 'बंद करें',
+      skipDemo: 'डेमो देखो',
+      showPay: 'कुंजी और पेमेंट',
+      demoHint: 'यह डेमो बात है। लाइव Gemini के लिए कुंजी डालो।',
     };
   }
 
@@ -168,5 +183,19 @@ export function copy(lang: UiLang) {
     typeNote: 'Type a note',
     speak: 'Speak',
     typedHint: 'Type a note to hear it out loud. No Gemini key needed.',
+    payTitle: 'Hosted orb',
+    payHint:
+      'Pay with PayPal or PhonePe for a hosted month. Or paste your own Gemini key — that stays free.',
+    payEmail: 'Email for the receipt',
+    payMonthly: 'Monthly orb',
+    payCredits: '60-minute credits',
+    payPaypal: 'PayPal',
+    payPhonepe: 'PhonePe',
+    paying: 'Opening checkout…',
+    paidHosted: 'Payment received. Connecting the hosted orb…',
+    closeGate: 'Close',
+    skipDemo: 'Skip to demo',
+    showPay: 'Key and payment',
+    demoHint: 'This is demo talk. Paste a key for live Gemini.',
   };
 }

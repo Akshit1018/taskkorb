@@ -7,6 +7,23 @@ import {
 } from './machine';
 
 describe('session machine', () => {
+  it('opens a demo-ready session from locked without treating it as a live key', () => {
+    const demo = reduceSession(INITIAL_SESSION, {type: 'DEMO_OPENED'});
+    expect(demo.phase).toBe('ready');
+    expect(demo.status).toMatch(/demo/i);
+    expect(demo.status).toMatch(/not Gemini/i);
+    expect(canStartListening(demo.phase)).toBe(true);
+    expect(reduceSession(demo, {type: 'DEMO_OPENED'}).status).toBe(demo.status);
+  });
+
+  it('opens demo from connecting so testers can skip while a hosted probe is in flight', () => {
+    const connecting = reduceSession(INITIAL_SESSION, {type: 'KEY_SUBMITTED'});
+    const demo = reduceSession(connecting, {type: 'DEMO_OPENED'});
+    expect(connecting.phase).toBe('connecting');
+    expect(demo.phase).toBe('ready');
+    expect(demo.status).toMatch(/not Gemini/i);
+  });
+
   it('starts locked until a key is submitted', () => {
     expect(INITIAL_SESSION.phase).toBe('locked');
     expect(canStartListening(INITIAL_SESSION.phase)).toBe(false);
