@@ -1,0 +1,13 @@
+Taskkorb
+Copyright 2026 Gosotek
+
+Licensed under the Apache License, Version 2.0.
+See LICENSE.
+
+Visual source files already carry SPDX-License-Identifier: Apache-2.0.
+
+This distribution includes third-party packages (Lit, Three.js,
+@google/genai, Vite, TypeScript, and others listed in package.json).
+Each package keeps its own license. Do not copy AGPL servers
+(Firefly III, Honcho server) into this tree. Do not copy
+unlicensed parent repos (kuhung/audiovisualizer) as source.
