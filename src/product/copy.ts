@@ -24,6 +24,8 @@ export function talkHint(talkMode: 'hold' | 'tap', lang: UiLang): string {
 
 const STATUS_HI: Record<string, string> = {
   'Add a Gemini API key to begin.': 'शुरू करने के लिए Gemini कुंजी डालें।',
+  'Demo mode. Talk to hear a sample. This is not Gemini.':
+    'डेमो मोड। सैंपल सुनने के लिए बात दबाएँ। यह Gemini नहीं है।',
   'Connecting to the orb…': 'ऑर्ब से जुड़ रहे हैं…',
   'Connected. Hold Talk and speak.': 'जुड़ गया। बात दबाकर रखें और बोलें।',
   'Requesting microphone access…': 'माइक्रोफ़ोन की अनुमति माँग रहे हैं…',
@@ -128,6 +130,10 @@ export function copy(lang: UiLang) {
       payPhonepe: 'PhonePe',
       paying: 'पेमेंट खुल रहा है…',
       paidHosted: 'पेमेंट मिल गई। होस्टेड ऑर्ब जोड़ रहे हैं…',
+      closeGate: 'बंद करें',
+      skipDemo: 'डेमो देखो',
+      showPay: 'कुंजी और पेमेंट',
+      demoHint: 'यह डेमो बात है। लाइव Gemini के लिए कुंजी डालो।',
     };
   }
 
@@ -187,5 +193,9 @@ export function copy(lang: UiLang) {
     payPhonepe: 'PhonePe',
     paying: 'Opening checkout…',
     paidHosted: 'Payment received. Connecting the hosted orb…',
+    closeGate: 'Close',
+    skipDemo: 'Skip to demo',
+    showPay: 'Key and payment',
+    demoHint: 'This is demo talk. Paste a key for live Gemini.',
   };
 }

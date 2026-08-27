@@ -8,6 +8,10 @@ describe('telemetry', () => {
     expect(event.detail?.model).toBe('test');
   });
 
+  it('records demo_opened when testers skip the pay wall', () => {
+    expect(track('demo_opened').name).toBe('demo_opened');
+  });
+
   it('refuses secret-like fields', () => {
     expect(() => track('session_error', {apiKey: 'x'})).toThrow(/secret-like/);
   });

@@ -25,7 +25,8 @@ export type SessionEvent =
   | {type: 'CLOSED'; reason: string; autoRetry?: boolean}
   | {type: 'RESET'}
   | {type: 'RETRY'}
-  | {type: 'RECONNECT_SCHEDULED'; attempt: number};
+  | {type: 'RECONNECT_SCHEDULED'; attempt: number}
+  | {type: 'DEMO_OPENED'};
 
 export interface SessionSnapshot {
   phase: SessionPhase;
@@ -61,6 +62,19 @@ export function reduceSession(
   event: SessionEvent,
 ): SessionSnapshot {
   switch (event.type) {
+    case 'DEMO_OPENED':
+      if (
+        state.phase === 'ready' ||
+        state.phase === 'listening' ||
+        state.phase === 'speaking'
+      ) {
+        return state;
+      }
+      return {
+        phase: 'ready',
+        status: 'Demo mode. Talk to hear a sample. This is not Gemini.',
+        error: '',
+      };
     case 'KEY_CLEARED':
       return INITIAL_SESSION;
     case 'KEY_SUBMITTED':

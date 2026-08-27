@@ -78,6 +78,7 @@ import {
 import {modelsToTry} from './src/live/models';
 import {track} from './src/telemetry/events';
 import {isSheetDismissKey, pathDismissesMore} from './src/ui/dismiss';
+import {demoTranscript, nextDemoExchange} from './src/demo/content';
 import {
   EMPTY_TRANSCRIPT,
   TranscriptState,
@@ -108,6 +109,8 @@ export class GdmLiveAudio extends LitElement {
   @state() payPlan: PlanId = 'monthly_hosted';
   @state() paying = false;
   @state() payError = '';
+  @state() gateDismissed = false;
+  @state() demoMode = false;
   @state() inputNode?: GainNode;
   @state() outputNode?: GainNode;
 
@@ -137,6 +140,7 @@ export class GdmLiveAudio extends LitElement {
   private lastFocusedReady = false;
   private useAlphaLiveApi = false;
   private playbackChain: Promise<void> = Promise.resolve();
+  private demoExchangeIndex = 0;
 
   static styles = css`
     :host {
@@ -317,13 +321,39 @@ export class GdmLiveAudio extends LitElement {
     }
 
     .key-card {
+      position: relative;
       width: min(420px, 100%);
+      max-height: min(92vh, 760px);
+      overflow-y: auto;
       color: white;
       text-align: center;
       background: rgba(255, 255, 255, 0.08);
       border: 1px solid rgba(255, 255, 255, 0.16);
       border-radius: 20px;
       padding: 24px;
+    }
+
+    .key-card .gate-close {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 44px;
+      height: 44px;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.5);
+      color: #fff;
+      font-size: 26px;
+      line-height: 1;
+      font-weight: 400;
+    }
+
+    .key-card button.secondary {
+      background: transparent;
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.28);
     }
 
     .key-card h1 {
@@ -509,6 +539,9 @@ export class GdmLiveAudio extends LitElement {
   }
 
   private get showKeyGate(): boolean {
+    if (this.gateDismissed && !this.editingKey) {
+      return false;
+    }
     if (this.authMode === 'unknown') {
       return true;
     }
@@ -521,6 +554,58 @@ export class GdmLiveAudio extends LitElement {
       this.sessionState.phase === 'locked' ||
       this.sessionState.errorKind === 'key'
     );
+  }
+
+  private dismissGate() {
+    this.gateDismissed = true;
+    this.editingKey = false;
+    this.moreOpen = false;
+    const live = Boolean(this.session || (this.apiKey && this.authMode === 'hosted'));
+    this.demoMode = !live;
+    if (!this.demoMode) {
+      return;
+    }
+    this.applyEvent({type: 'DEMO_OPENED'});
+    if (this.transcript.turns.length === 0) {
+      this.transcript = demoTranscript(
+        Date.now(),
+        uiLanguage(this.prefs, navigator.language),
+      );
+      this.persistTranscripts();
+    }
+    track('demo_opened');
+  }
+
+  private reopenGate() {
+    this.gateDismissed = false;
+    this.editingKey = true;
+    this.moreOpen = false;
+  }
+
+  private playDemoExchange() {
+    const lang = uiLanguage(this.prefs, navigator.language);
+    const pair = nextDemoExchange(this.demoExchangeIndex, lang);
+    this.demoExchangeIndex += 1;
+    this.applyEvent({type: 'LISTEN_START_REQUESTED'});
+    this.applyEvent({type: 'LISTEN_STARTED'});
+    this.transcript = appendTurn(this.transcript, {
+      side: 'user',
+      text: pair.user,
+      at: Date.now(),
+    });
+    this.transcript = appendTurn(this.transcript, {
+      side: 'orb',
+      text: pair.orb,
+      at: Date.now() + 1,
+    });
+    this.persistTranscripts();
+    this.applyEvent({type: 'AUDIO_OUT'});
+    this.speakPrepared(pair.orb, 'orb');
+    window.setTimeout(() => {
+      if (this.demoMode && this.sessionState.phase === 'speaking') {
+        this.applyEvent({type: 'SPEAKING_DONE'});
+      }
+    }, 1400);
   }
 
   private billingClaim(): string {
@@ -592,6 +677,15 @@ export class GdmLiveAudio extends LitElement {
 
   private async bootstrapAuth() {
     const hosted = await this.requestHosted();
+    if (this.demoMode || this.gateDismissed) {
+      if (hosted.mode === 'hosted') {
+        this.hostedAvailable = true;
+      }
+      if (this.authMode === 'unknown') {
+        this.authMode = 'byo';
+      }
+      return;
+    }
     if (hosted.mode === 'hosted') {
       this.hostedAvailable = true;
       await this.applyHostedToken(hosted.token, hosted.expireTime);
@@ -998,6 +1092,11 @@ export class GdmLiveAudio extends LitElement {
 
   private async startRecording(event?: Event) {
     event?.preventDefault();
+    if (this.demoMode && !this.session) {
+      event?.preventDefault();
+      this.playDemoExchange();
+      return;
+    }
     if (this.listenInFlight || !canStartListening(this.sessionState.phase)) {
       return;
     }
@@ -1190,6 +1289,7 @@ export class GdmLiveAudio extends LitElement {
   }
 
   private async applyHostedToken(token: string, expireTime?: string) {
+    this.demoMode = false;
     this.authMode = 'hosted';
     this.hostedAvailable = true;
     this.apiKey = token;
@@ -1223,6 +1323,7 @@ export class GdmLiveAudio extends LitElement {
       return;
     }
 
+    this.demoMode = false;
     const validated = validateApiKey(this.keyDraft);
     if (validated.ok === false) {
       this.applyEvent({
@@ -1458,7 +1559,9 @@ export class GdmLiveAudio extends LitElement {
       navigator.userAgent,
       navigator.maxTouchPoints,
     );
-    const talkDisabled = listening ? false : insecure || !canStartListening(phase);
+    const talkDisabled = listening
+      ? false
+      : insecure || (!this.demoMode && !canStartListening(phase));
     const lang = uiLanguage(this.prefs, navigator.language);
     const strings = copy(lang);
     const keyReady = validateApiKey(this.keyDraft).ok;
@@ -1476,87 +1579,101 @@ export class GdmLiveAudio extends LitElement {
           ? html`
               <form class="key-gate" @submit=${this.saveApiKey}>
                 <div class="key-card">
+                  <button
+                    type="button"
+                    class="gate-close"
+                    data-kind="gate-close"
+                    aria-label=${strings.closeGate}
+                    @click=${() => this.dismissGate()}>
+                    ×
+                  </button>
                   <h1>${strings.name}</h1>
                   <p>${strings.tagline}</p>
                   ${this.authMode === 'unknown'
                     ? html`<p>${strings.opening}</p>`
-                    : html`
-                        <p>${strings.pasteKey}</p>
-                        <p>
-                          <a
-                            href=${strings.getKeyHref}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            >${strings.getKey}</a
-                          >
-                        </p>
-                        ${error
-                          ? html`<p class="error" role="alert">${shownStatus}</p>`
-                          : ''}
-                        <input
-                          type="password"
-                          autocomplete="off"
-                          maxlength=${MAX_API_KEY_LENGTH}
-                          placeholder=${strings.keyLabel}
-                          aria-label=${strings.keyLabel}
-                          aria-invalid=${!this.keyDraft || keyReady ? 'false' : 'true'}
-                          .value=${this.keyDraft}
-                          @input=${this.updateKeyDraft} />
-                        <button
-                          type="submit"
-                          ?disabled=${this.connectInFlight || !keyReady}>
-                          ${this.connectInFlight ? strings.connecting : strings.connect}
-                        </button>
-                        ${this.apiKey
-                          ? html`<button
-                              type="button"
-                              @click=${() => {
-                                this.editingKey = false;
-                              }}>
-                              ${strings.back}
-                            </button>`
-                          : ''}
-                        <div class="pay-rail">
-                          <h2>${strings.payTitle}</h2>
-                          <p>${strings.payHint}</p>
-                          <input
-                            type="email"
-                            autocomplete="email"
-                            placeholder=${strings.payEmail}
-                            aria-label=${strings.payEmail}
-                            .value=${this.payEmail}
-                            @input=${(event: Event) => {
-                              this.payEmail = (event.target as HTMLInputElement).value;
-                            }} />
-                          <select
-                            aria-label=${strings.payMonthly}
-                            .value=${this.payPlan}
-                            @change=${(event: Event) => {
-                              this.payPlan = (event.target as HTMLSelectElement)
-                                .value as PlanId;
-                            }}>
-                            <option value="monthly_hosted">${strings.payMonthly}</option>
-                            <option value="credit_pack">${strings.payCredits}</option>
-                          </select>
-                          ${this.payError
-                            ? html`<p class="error" role="alert">${this.payError}</p>`
-                            : ''}
-                          <div class="pay-actions">
-                            <button
-                              type="button"
-                              ?disabled=${this.paying}
-                              @click=${() => this.onPay('paypal')}>
-                              ${this.paying ? strings.paying : strings.payPaypal}
-                            </button>
-                            <button
-                              type="button"
-                              ?disabled=${this.paying}
-                              @click=${() => this.onPay('phonepe')}>
-                              ${this.paying ? strings.paying : strings.payPhonepe}
-                            </button>
-                          </div>
-                        </div>
-                      `}
+                    : ''}
+                  <p>${strings.pasteKey}</p>
+                  <p>
+                    <a
+                      href=${strings.getKeyHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      >${strings.getKey}</a
+                    >
+                  </p>
+                  ${error
+                    ? html`<p class="error" role="alert">${shownStatus}</p>`
+                    : ''}
+                  <input
+                    type="password"
+                    autocomplete="off"
+                    maxlength=${MAX_API_KEY_LENGTH}
+                    placeholder=${strings.keyLabel}
+                    aria-label=${strings.keyLabel}
+                    aria-invalid=${!this.keyDraft || keyReady ? 'false' : 'true'}
+                    .value=${this.keyDraft}
+                    @input=${this.updateKeyDraft} />
+                  <button
+                    type="submit"
+                    ?disabled=${this.connectInFlight || !keyReady}>
+                    ${this.connectInFlight ? strings.connecting : strings.connect}
+                  </button>
+                  ${this.apiKey
+                    ? html`<button
+                        type="button"
+                        @click=${() => {
+                          this.editingKey = false;
+                        }}>
+                        ${strings.back}
+                      </button>`
+                    : ''}
+                  <button
+                    type="button"
+                    class="secondary"
+                    data-kind="skip-demo"
+                    @click=${() => this.dismissGate()}>
+                    ${strings.skipDemo}
+                  </button>
+                  <div class="pay-rail">
+                    <h2>${strings.payTitle}</h2>
+                    <p>${strings.payHint}</p>
+                    <input
+                      type="email"
+                      autocomplete="email"
+                      placeholder=${strings.payEmail}
+                      aria-label=${strings.payEmail}
+                      .value=${this.payEmail}
+                      @input=${(event: Event) => {
+                        this.payEmail = (event.target as HTMLInputElement).value;
+                      }} />
+                    <select
+                      aria-label=${strings.payMonthly}
+                      .value=${this.payPlan}
+                      @change=${(event: Event) => {
+                        this.payPlan = (event.target as HTMLSelectElement)
+                          .value as PlanId;
+                      }}>
+                      <option value="monthly_hosted">${strings.payMonthly}</option>
+                      <option value="credit_pack">${strings.payCredits}</option>
+                    </select>
+                    ${this.payError
+                      ? html`<p class="error" role="alert">${this.payError}</p>`
+                      : ''}
+                    <div class="pay-actions">
+                      <button
+                        type="button"
+                        ?disabled=${this.paying}
+                        @click=${() => this.onPay('paypal')}>
+                        ${this.paying ? strings.paying : strings.payPaypal}
+                      </button>
+                      <button
+                        type="button"
+                        ?disabled=${this.paying}
+                        @click=${() => this.onPay('phonepe')}>
+                        ${this.paying ? strings.paying : strings.payPhonepe}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </form>
             `
@@ -1644,6 +1761,9 @@ export class GdmLiveAudio extends LitElement {
                 </label>
                 <p class="empty">${strings.privacyTitle}: ${strings.privacy}</p>
                 <div class="more-actions">
+                  <button type="button" data-kind="show-pay" @click=${() => this.reopenGate()}>
+                    ${strings.showPay}
+                  </button>
                   <button type="button" @click=${this.clearKey}>
                     ${this.authMode === 'hosted' ? strings.useMyKey : strings.changeKey}
                   </button>
@@ -1684,7 +1804,7 @@ export class GdmLiveAudio extends LitElement {
           <button type="submit" ?disabled=${!this.typedDraft.trim()}>
             ${strings.speak}
           </button>
-          <p class="composer-hint">${strings.typedHint}</p>
+          <p class="composer-hint">${this.demoMode ? strings.demoHint : strings.typedHint}</p>
         </form>
         ${this.showKeyGate
           ? ''
