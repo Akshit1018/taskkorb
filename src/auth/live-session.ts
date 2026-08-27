@@ -37,13 +37,20 @@ function readSession(response: Response, body: LiveSessionResponse): HostedSessi
   return {mode: 'byo'};
 }
 
-async function requestLiveSession(fetcher: typeof fetch): Promise<{
+async function requestLiveSession(
+  fetcher: typeof fetch,
+  claimToken = '',
+): Promise<{
   response: Response;
   body: LiveSessionResponse;
 }> {
+  const headers: Record<string, string> = {Accept: 'application/json'};
+  if (claimToken) {
+    headers['x-taskkorb-claim'] = claimToken;
+  }
   const response = await fetcher('/api/live-session', {
     method: 'GET',
-    headers: {Accept: 'application/json'},
+    headers,
   });
   const body = (await response.json()) as LiveSessionResponse;
   return {response, body};
@@ -74,12 +81,13 @@ export async function fetchHostedCredential(
       setTimeout(resolve, ms);
     }),
   timeoutMs = HOSTED_SESSION_TIMEOUT_MS,
+  claimToken = '',
 ): Promise<HostedSession> {
   try {
-    const first = await withTimeout(requestLiveSession(fetcher), timeoutMs);
+    const first = await withTimeout(requestLiveSession(fetcher, claimToken), timeoutMs);
     if (first.response.status === 429) {
       await wait(parseRetryAfterMs(first.response.headers.get('Retry-After')));
-      const second = await withTimeout(requestLiveSession(fetcher), timeoutMs);
+      const second = await withTimeout(requestLiveSession(fetcher, claimToken), timeoutMs);
       return readSession(second.response, second.body);
     }
     return readSession(first.response, first.body);

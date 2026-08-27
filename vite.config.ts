@@ -1,5 +1,6 @@
 import path from 'path';
 import {defineConfig} from 'vite';
+import {billingPlugin} from './src/vite/billing';
 import {healthPlugin} from './src/vite/health';
 import {liveTokenPlugin} from './src/vite/live-token';
 import {previewGatePlugin} from './src/vite/preview-gate';
@@ -21,7 +22,7 @@ export default defineConfig({
       'Permissions-Policy': 'microphone=(self), camera=(), geolocation=()',
     },
   },
-  plugins: [previewGatePlugin(), liveTokenPlugin(), healthPlugin()],
+  plugins: [previewGatePlugin(), billingPlugin(), liveTokenPlugin(), healthPlugin()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, '.'),

@@ -31,4 +31,13 @@ describe('ui copy', () => {
     expect(copy('hi').speak).toBe('बोलो');
     expect(copy('hi').typedHint).toMatch(/कुंजी नहीं/);
   });
+
+  it('names PayPal and PhonePe without promising a Gemini key is required to pay', () => {
+    expect(copy('en').payPaypal).toBe('PayPal');
+    expect(copy('en').payPhonepe).toBe('PhonePe');
+    expect(copy('en').payHint).toMatch(/PayPal or PhonePe/);
+    expect(copy('en').payHint).toMatch(/stays free/);
+    expect(copy('hi').payPaypal).toBe('PayPal');
+    expect(copy('hi').payTitle).toMatch(/ऑर्ब/);
+  });
 });

@@ -8,7 +8,14 @@ import {GoogleGenAI, LiveServerMessage, Modality, Session} from '@google/genai';
 import {LitElement, css, html} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 import {MAX_API_KEY_LENGTH, validateApiKey} from './src/auth/api-key';
-import {fetchHostedCredential} from './src/auth/live-session';
+import {HOSTED_SESSION_TIMEOUT_MS, fetchHostedCredential} from './src/auth/live-session';
+import {
+  readBillingClaim,
+  requestCheckout,
+  requestClaim,
+  writeBillingClaim,
+} from './src/billing/client';
+import type {BillingProvider, PlanId} from './src/billing/types';
 import {shouldRemint} from './src/auth/token-expiry';
 import {isAudible} from './src/audio/level';
 import {
@@ -97,6 +104,10 @@ export class GdmLiveAudio extends LitElement {
   @state() hostedAvailable = false;
   @state() listenNow = 0;
   @state() typedDraft = '';
+  @state() payEmail = '';
+  @state() payPlan: PlanId = 'monthly_hosted';
+  @state() paying = false;
+  @state() payError = '';
   @state() inputNode?: GainNode;
   @state() outputNode?: GainNode;
 
@@ -410,6 +421,47 @@ export class GdmLiveAudio extends LitElement {
       font-size: 12px;
       text-align: center;
     }
+
+    .pay-rail {
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.16);
+      text-align: left;
+    }
+
+    .pay-rail h2 {
+      margin: 0 0 8px;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .pay-rail p {
+      margin: 0 0 12px;
+      color: #d8d2e8;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .pay-rail select {
+      width: 100%;
+      margin-bottom: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.28);
+      color: white;
+      padding: 12px 14px;
+      font-size: 16px;
+    }
+
+    .pay-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .pay-actions button {
+      margin-top: 0;
+      flex: 1;
+    }
   `;
 
   connectedCallback() {
@@ -422,7 +474,7 @@ export class GdmLiveAudio extends LitElement {
     window.addEventListener('keydown', this.onWindowKey);
     window.addEventListener('pointerdown', this.onWindowPointer);
     document.addEventListener('visibilitychange', this.onDocumentVisibility);
-    void this.bootstrapAuth();
+    void this.startAuth();
   }
 
   disconnectedCallback() {
@@ -471,8 +523,75 @@ export class GdmLiveAudio extends LitElement {
     );
   }
 
+  private billingClaim(): string {
+    return readBillingClaim(typeof localStorage === 'undefined' ? null : localStorage);
+  }
+
+  private requestHosted() {
+    return fetchHostedCredential(
+      fetch,
+      (ms) =>
+        new Promise((resolve) => {
+          setTimeout(resolve, ms);
+        }),
+      HOSTED_SESSION_TIMEOUT_MS,
+      this.billingClaim(),
+    );
+  }
+
+  private async finishBillingReturn() {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    const paid = new URLSearchParams(window.location.search).get('billing') === 'ok';
+    const claim = this.billingClaim();
+    if (!paid || !claim) {
+      return;
+    }
+    const claimed = await requestClaim(claim);
+    if (!claimed.entitled) {
+      return;
+    }
+    this.payError = '';
+    const hosted = await this.requestHosted();
+    if (hosted.mode === 'hosted') {
+      await this.applyHostedToken(hosted.token, hosted.expireTime);
+    }
+  }
+
+  private async onPay(provider: BillingProvider) {
+    this.paying = true;
+    this.payError = '';
+    try {
+      const started = await requestCheckout({
+        provider,
+        planId: this.payPlan,
+        email: this.payEmail,
+      });
+      if (started.ok === false) {
+        this.payError = started.error;
+        return;
+      }
+      writeBillingClaim(localStorage, started.claimToken);
+      track('billing_checkout', {provider, plan: this.payPlan});
+      window.location.assign(started.checkoutUrl);
+    } catch {
+      this.payError = 'Could not start checkout.';
+    } finally {
+      this.paying = false;
+    }
+  }
+
+  private async startAuth() {
+    await this.finishBillingReturn();
+    if (this.authMode === 'hosted') {
+      return;
+    }
+    await this.bootstrapAuth();
+  }
+
   private async bootstrapAuth() {
-    const hosted = await fetchHostedCredential();
+    const hosted = await this.requestHosted();
     if (hosted.mode === 'hosted') {
       this.hostedAvailable = true;
       await this.applyHostedToken(hosted.token, hosted.expireTime);
@@ -1047,7 +1166,7 @@ export class GdmLiveAudio extends LitElement {
         Boolean(this.resumptionHandle) &&
         !shouldRemint(this.hostedExpireTime, Date.now());
       if (!reuseToken) {
-        const hosted = await fetchHostedCredential();
+        const hosted = await this.requestHosted();
         if (hosted.mode !== 'hosted') {
           this.reconnectArmed = false;
           this.applyEvent({
@@ -1082,7 +1201,7 @@ export class GdmLiveAudio extends LitElement {
   }
 
   private async useHostedSession() {
-    const hosted = await fetchHostedCredential();
+    const hosted = await this.requestHosted();
     if (hosted.mode !== 'hosted') {
       this.applyEvent({
         type: 'ERROR',
@@ -1221,7 +1340,7 @@ export class GdmLiveAudio extends LitElement {
     }
     this.stopRecording('teardown');
     if (this.authMode === 'hosted') {
-      const hosted = await fetchHostedCredential();
+      const hosted = await this.requestHosted();
       if (hosted.mode !== 'hosted') {
         this.applyEvent({
           type: 'ERROR',
@@ -1397,6 +1516,46 @@ export class GdmLiveAudio extends LitElement {
                               ${strings.back}
                             </button>`
                           : ''}
+                        <div class="pay-rail">
+                          <h2>${strings.payTitle}</h2>
+                          <p>${strings.payHint}</p>
+                          <input
+                            type="email"
+                            autocomplete="email"
+                            placeholder=${strings.payEmail}
+                            aria-label=${strings.payEmail}
+                            .value=${this.payEmail}
+                            @input=${(event: Event) => {
+                              this.payEmail = (event.target as HTMLInputElement).value;
+                            }} />
+                          <select
+                            aria-label=${strings.payMonthly}
+                            .value=${this.payPlan}
+                            @change=${(event: Event) => {
+                              this.payPlan = (event.target as HTMLSelectElement)
+                                .value as PlanId;
+                            }}>
+                            <option value="monthly_hosted">${strings.payMonthly}</option>
+                            <option value="credit_pack">${strings.payCredits}</option>
+                          </select>
+                          ${this.payError
+                            ? html`<p class="error" role="alert">${this.payError}</p>`
+                            : ''}
+                          <div class="pay-actions">
+                            <button
+                              type="button"
+                              ?disabled=${this.paying}
+                              @click=${() => this.onPay('paypal')}>
+                              ${this.paying ? strings.paying : strings.payPaypal}
+                            </button>
+                            <button
+                              type="button"
+                              ?disabled=${this.paying}
+                              @click=${() => this.onPay('phonepe')}>
+                              ${this.paying ? strings.paying : strings.payPhonepe}
+                            </button>
+                          </div>
+                        </div>
                       `}
                 </div>
               </form>

@@ -119,6 +119,15 @@ export function copy(lang: UiLang) {
       typeNote: 'एक नोट लिखें',
       speak: 'बोलो',
       typedHint: 'नोट लिखें, आवाज़ में सुनें। Gemini कुंजी नहीं चाहिए।',
+      payTitle: 'होस्टेड ऑर्ब',
+      payHint: 'PayPal या PhonePe से महीने का सेशन लो। या अपनी Gemini कुंजी डालो — वह मुफ़्त रहती है।',
+      payEmail: 'रसीद के लिए ईमेल',
+      payMonthly: 'महीने का ऑर्ब',
+      payCredits: '६० मिनट क्रेडिट',
+      payPaypal: 'PayPal',
+      payPhonepe: 'PhonePe',
+      paying: 'पेमेंट खुल रहा है…',
+      paidHosted: 'पेमेंट मिल गई। होस्टेड ऑर्ब जोड़ रहे हैं…',
     };
   }
 
@@ -168,5 +177,15 @@ export function copy(lang: UiLang) {
     typeNote: 'Type a note',
     speak: 'Speak',
     typedHint: 'Type a note to hear it out loud. No Gemini key needed.',
+    payTitle: 'Hosted orb',
+    payHint:
+      'Pay with PayPal or PhonePe for a hosted month. Or paste your own Gemini key — that stays free.',
+    payEmail: 'Email for the receipt',
+    payMonthly: 'Monthly orb',
+    payCredits: '60-minute credits',
+    payPaypal: 'PayPal',
+    payPhonepe: 'PhonePe',
+    paying: 'Opening checkout…',
+    paidHosted: 'Payment received. Connecting the hosted orb…',
   };
 }
