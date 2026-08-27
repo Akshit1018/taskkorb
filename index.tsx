@@ -19,6 +19,13 @@ import {
 import {createBlob, decode, decodeAudioData} from './src/audio/pcm';
 import {insecureMicMessage, isSecureAudioContext} from './src/audio/secure-context';
 import {applyPlayAndRecordHint, resumeAudioGraph} from './src/audio/unlock';
+import {
+  applySpeakPlan,
+  planTypedSpeak,
+  shouldSpeakOrbText,
+  speechLang,
+  type SynthesisLike,
+} from './src/audio/typed-tts';
 import {classifyLiveFailure} from './src/errors/classify';
 import {humanizeError} from './src/errors/humanize';
 import {
@@ -89,6 +96,7 @@ export class GdmLiveAudio extends LitElement {
   @state() moreOpen = false;
   @state() hostedAvailable = false;
   @state() listenNow = 0;
+  @state() typedDraft = '';
   @state() inputNode?: GainNode;
   @state() outputNode?: GainNode;
 
@@ -353,6 +361,55 @@ export class GdmLiveAudio extends LitElement {
     .error {
       color: #ffb4b4;
     }
+
+    .composer {
+      z-index: 21;
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    .composer[data-with-talk='true'] {
+      bottom: calc(10vh + 178px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .composer input {
+      flex: 1 1 180px;
+      min-height: 48px;
+      box-sizing: border-box;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 16px;
+      background: rgba(0, 0, 0, 0.35);
+      color: white;
+      padding: 0 14px;
+      font: inherit;
+    }
+
+    .composer input:focus-visible,
+    .composer button:focus-visible {
+      outline: 2px solid #fff;
+      outline-offset: 3px;
+    }
+
+    .composer button {
+      min-width: 88px;
+    }
+
+    .composer-hint {
+      flex: 1 0 100%;
+      margin: 0;
+      color: rgba(255, 255, 255, 0.55);
+      font-size: 12px;
+      text-align: center;
+    }
   `;
 
   connectedCallback() {
@@ -371,6 +428,7 @@ export class GdmLiveAudio extends LitElement {
   disconnectedCallback() {
     super.disconnectedCallback();
     this.stopRecording();
+    this.cancelTypedSpeech();
     this.session?.close();
     window.clearTimeout(this.listenCapTimer);
     window.clearInterval(this.listenTick);
@@ -384,7 +442,10 @@ export class GdmLiveAudio extends LitElement {
   protected updated() {
     const canFocusTalk =
       this.sessionState.phase === 'ready' && !this.showKeyGate && !this.moreOpen;
-    if (canFocusTalk && !this.lastFocusedReady) {
+    const root = this.renderRoot;
+    const active = 'activeElement' in root ? root.activeElement : null;
+    const typing = active instanceof HTMLInputElement && active.closest('.composer');
+    if (canFocusTalk && !this.lastFocusedReady && !typing) {
       this.lastFocusedReady = true;
       const talk = this.renderRoot.querySelector<HTMLButtonElement>('[data-kind="talk"]');
       talk?.focus();
@@ -436,6 +497,56 @@ export class GdmLiveAudio extends LitElement {
 
   private persistTranscripts() {
     writeStoredTranscript(this.transcript);
+  }
+
+  private synthesis(): SynthesisLike | undefined {
+    const synth = window.speechSynthesis;
+    return synth ? (synth as unknown as SynthesisLike) : undefined;
+  }
+
+  private cancelTypedSpeech() {
+    const synth = this.synthesis();
+    if (synth && (synth.speaking || synth.pending)) {
+      synth.cancel();
+    }
+  }
+
+  private speakPrepared(text: string, side: 'user' | 'orb') {
+    const synth = this.synthesis();
+    const plan = planTypedSpeak({
+      text,
+      lang: speechLang(this.prefs.language, navigator.language),
+      volume: this.prefs.volume,
+      voices: synth?.getVoices() ?? [],
+    });
+    if (plan.action === 'skip') {
+      return;
+    }
+    if (synth) {
+      applySpeakPlan(synth, plan);
+    }
+    track('typed_spoke', {side});
+  }
+
+  private onTypedDraftInput(event: Event) {
+    this.typedDraft = (event.target as HTMLInputElement).value;
+  }
+
+  private onTypedSubmit(event: Event) {
+    event.preventDefault();
+    const plan = planTypedSpeak({
+      text: this.typedDraft,
+      lang: speechLang(this.prefs.language, navigator.language),
+      volume: this.prefs.volume,
+      voices: this.synthesis()?.getVoices() ?? [],
+    });
+    if (plan.action === 'skip') {
+      return;
+    }
+    this.transcript = appendTurn(this.transcript, 'user', plan.text);
+    this.persistTranscripts();
+    this.typedDraft = '';
+    this.speakPrepared(plan.text, 'user');
   }
 
   private ensureAudio() {
@@ -641,6 +752,16 @@ export class GdmLiveAudio extends LitElement {
       }
     }
 
+    if (message.serverContent?.turnComplete) {
+      const last = this.transcript.turns[this.transcript.turns.length - 1];
+      if (
+        last?.side === 'orb' &&
+        shouldSpeakOrbText({liveAudioPlaying: this.sources.size > 0})
+      ) {
+        this.speakPrepared(last.text, 'orb');
+      }
+    }
+
     const parts = message.serverContent?.modelTurn?.parts ?? [];
     for (const part of parts) {
       const audio = part.inlineData?.data;
@@ -772,6 +893,7 @@ export class GdmLiveAudio extends LitElement {
 
     this.listenInFlight = true;
     this.listenCancelRequested = false;
+    this.cancelTypedSpeech();
     this.applyEvent({type: 'LISTEN_START_REQUESTED'});
     this.ensureAudio();
     applyPlayAndRecordHint(navigator);
@@ -1051,6 +1173,7 @@ export class GdmLiveAudio extends LitElement {
     }
     this.undoTranscript = this.transcript;
     this.transcript = EMPTY_TRANSCRIPT;
+    this.cancelTypedSpeech();
     clearStoredTranscript();
   }
 
@@ -1386,6 +1509,24 @@ export class GdmLiveAudio extends LitElement {
               </div>
             `
           : ''}
+        <form
+          class="composer"
+          data-with-talk=${this.showKeyGate ? 'false' : 'true'}
+          @submit=${this.onTypedSubmit}>
+          <input
+            type="text"
+            autocomplete="off"
+            enterkeyhint="send"
+            maxlength="500"
+            placeholder=${strings.typeNote}
+            aria-label=${strings.typeNote}
+            .value=${this.typedDraft}
+            @input=${this.onTypedDraftInput} />
+          <button type="submit" ?disabled=${!this.typedDraft.trim()}>
+            ${strings.speak}
+          </button>
+          <p class="composer-hint">${strings.typedHint}</p>
+        </form>
         ${this.showKeyGate
           ? ''
           : html`

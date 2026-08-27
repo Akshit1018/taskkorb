@@ -56,6 +56,7 @@ Critic loop 2 (code review, no live Gemini):
 | TASK-G033 | Dummy key auto-reconnects as `session` | RT-011 leftover | VERIFIED | Classify 401/`PERMISSION_DENIED` as key; do not CLOSED over it | IMPLEMENTED / TESTED |
 | TASK-G034 | Key gate hides after socket auth fail | RT-011 | VERIFIED | Stay in `error` + `editingKey` so Change/paste is visible | IMPLEMENTED / TESTED |
 | TASK-G037 | Health payload untested | RT-073 | VERIFIED | `healthStatus` unit test; `session_reconnect_gave_up` | IMPLEMENTED / TESTED |
+| TASK-G038 | Typed notes stay silent | Owner “do all” / Q3 | VERIFIED | Web Speech `speechSynthesis` on typed send; prefer `localService`; cancel-before-speak | IMPLEMENTED / TESTED |
 
 Critic loop 4: a rejected key that failed *after* `connect()` still looked like a flaky socket. Classification + keeping the gate open is the root-cause fix. Post-open model fallback (G035) and extracting the Live client (G022/G036) remain PARTIAL. Career OS still REJECTED.
 

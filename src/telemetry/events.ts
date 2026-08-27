@@ -15,7 +15,8 @@ export type ProductEventName =
   | 'prefs_changed'
   | 'session_reconnecting'
   | 'session_reconnect_gave_up'
-  | 'session_go_away';
+  | 'session_go_away'
+  | 'typed_spoke';
 
 export interface ProductEvent {
   name: ProductEventName;
