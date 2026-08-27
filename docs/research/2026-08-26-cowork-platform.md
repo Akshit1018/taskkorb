@@ -254,6 +254,8 @@ Defaults are this agent’s pick after the 18-model review. Override any row.
 
 You can still answer in chat: `Q1=A Q2=BYO Q3=TTS Q4=none Q5=skip Q6=none Q7=keychain` — or change any letter.
 
+**Owner lock (27 Aug 2026):** the owner said **“do all.”** That means accept every Q1–Q7 default above. First shipped slice is **typed TTS** on the existing green-team web orb (`speechSynthesis`, prefer `localService === true`). Product work lives on `cursor/typed-tts-79c8` (branched from `cursor/green-team-voice-79c8`). **Still do not start C**, iOS Swift, Hermes host, budget, Telegram, or WhatsApp. Blocked wishes stay blocked (Plus-login, iOS overlay, last-5-chats, iOS SMS inbox, WhatsApp personal/Baileys, Hermes-in-IPA, Gmail OAuth/CASA).
+
 ### After Q1
 
 1. If Q1 = **A** (“typed note bolke sunao”) → Web Speech Synthesis on the existing orb. Do **not** start C.
@@ -552,9 +554,9 @@ Default [SFSpeechRecognizer](https://developer.apple.com/documentation/speech/sf
 
 These are **not** a backlog: floating iOS dock over Claude/ChatGPT, last-5-chats from other apps, ChatGPT Plus as an API key, WhatsApp personal inbox / Baileys, Hermes-inside-App-Store, Xiaomi “SS bol” as a public wake-word SDK.
 
-### 16.10 Steal-list (only after grill Q1–Q7)
+### 16.10 Steal-list (Q1–Q7 accepted — “do all”)
 
-Do not start items 4–8 unless Q1 = C (or Q5/Q4 explicitly yes).
+Owner accepted the defaults. **Only item 2 is in flight** (typed TTS). Do not start items 3–8 (iOS, tasks/MCP, Telegram, memory, Hermes, budget) and do not start C.
 
 1. **Orb:** keep green-team `visual-3d.ts` (`(1, 6)`, no bloom); steal velvet **state lerp + noise gate** if we want a second skin.
 2. **Typed → voice:** `speechSynthesis` on the web orb; prefer `localService === true` (no new OSS).
@@ -588,7 +590,7 @@ These were leftover 18-model “consider” items. They are **hard recommendatio
 | iOS wake | Vocal Shortcuts / Hey Siri → App Shortcut. No third-party always-on. |
 | Plus / Pro / Advanced | **≠ API.** No login-with-Plus. |
 | Claude Code / Codex CLI quota | **≠** a license for Taskkorb. |
-| Default product | Q1 = **A**, Q3 = typed TTS. Do not code C or Swift until you change Q1. |
+| Default product | **Accepted (“do all”).** Q1 = **A**, Q3 = typed TTS. Do not code C or Swift. |
 
 ---
 
@@ -603,6 +605,7 @@ These were leftover 18-model “consider” items. They are **hard recommendatio
 - The old Gemini “Advanced ≠ API” community thread (`support.google.com/gemini/thread/342070024`) now **404s**. Use [Gemini API billing](https://ai.google.dev/gemini-api/docs/billing).
 - 18-model review (26 Aug 2026) corrected: Hermes profiles ≠ sandbox; AppFlowy/AFFiNE licenses; green-team orb `(1, 6)` / no bloom; grill Q1–Q7 inlined; MCP OAuth vs Bearer; BYO vs production keys; kuhung ideas-only; test count 80.
 - “Go” pass locked remaining consider items: Apache-2.0 `LICENSE` + `NOTICE`; D1 if Q1 = C; no Gmail CASA start; Q1–Q7 defaults (A / BYO / TTS / none / skip / none / Keychain-or-mint).
+- Owner **“do all”** (27 Aug 2026) accepted those Q1–Q7 defaults. First slice = typed TTS on the green-team orb. Do not start C.
 
 ---
 
