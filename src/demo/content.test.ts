@@ -4,7 +4,7 @@ import {demoTranscript, nextDemoExchange} from './content';
 describe('demo content', () => {
   it('seeds a short You/Orb conversation', () => {
     const seeded = demoTranscript(1_700_000_000_000, 'en');
-    expect(seeded.turns).toHaveLength(4);
+    expect(seeded.turns).toHaveLength(2);
     expect(seeded.turns[0]?.side).toBe('user');
     expect(seeded.turns[1]?.side).toBe('orb');
     expect(seeded.turns[0]?.text).toMatch(/remind/i);

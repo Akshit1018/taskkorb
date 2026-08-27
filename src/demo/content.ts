@@ -3,16 +3,12 @@ import type {TranscriptState} from '../transcript/store';
 
 const SEED_EN: Array<{side: 'user' | 'orb'; text: string}> = [
   {side: 'user', text: 'Remind me to call the shop at six.'},
-  {side: 'orb', text: 'I will hold that. Speak, and the orb answers.'},
-  {side: 'user', text: 'What is on the list?'},
-  {side: 'orb', text: 'Call the shop at six. This preview is demo text, not a live Gemini turn.'},
+  {side: 'orb', text: 'Held. Speak, and the orb answers.'},
 ];
 
 const SEED_HI: Array<{side: 'user' | 'orb'; text: string}> = [
   {side: 'user', text: 'दुकान को छह बजे याद दिलाना।'},
   {side: 'orb', text: 'रख लिया। बोलो, और ऑर्ब जवाब दे।'},
-  {side: 'user', text: 'लिस्ट में क्या है?'},
-  {side: 'orb', text: 'दुकान को छह बजे कॉल। यह डेमो टेक्स्ट है, लाइव Gemini नहीं।'},
 ];
 
 const EXCHANGE_EN = [

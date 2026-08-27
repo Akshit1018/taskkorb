@@ -72,6 +72,14 @@ export class GdmLiveAudioVisuals3D extends LitElement {
   private onContextRestored?: () => void;
 
   static styles = css`
+    :host {
+      display: block;
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+
     canvas {
       width: 100% !important;
       height: 100% !important;

@@ -144,12 +144,22 @@ export class GdmLiveAudio extends LitElement {
 
   static styles = css`
     :host {
+      display: block;
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
       font-family: system-ui, sans-serif;
+    }
+
+    main {
+      position: absolute;
+      inset: 0;
     }
 
     #status {
       position: absolute;
-      bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+      bottom: calc(5vh + env(safe-area-inset-bottom, 0px));
       left: 16px;
       right: 16px;
       z-index: 10;
@@ -157,6 +167,7 @@ export class GdmLiveAudio extends LitElement {
       color: rgba(255, 255, 255, 0.86);
       font-size: 14px;
       line-height: 1.4;
+      pointer-events: none;
     }
 
     #status[data-kind='error'] {
@@ -165,34 +176,35 @@ export class GdmLiveAudio extends LitElement {
 
     .transcript {
       position: absolute;
-      top: calc(16px + env(safe-area-inset-top, 0px));
+      top: calc(12px + env(safe-area-inset-top, 0px));
       left: 16px;
       right: 16px;
       z-index: 10;
-      max-width: 640px;
-      max-height: 28vh;
+      max-width: 520px;
+      max-height: 16vh;
       overflow: auto;
       margin: 0 auto;
       color: rgba(255, 255, 255, 0.8);
-      font-size: 15px;
-      line-height: 1.45;
+      font-size: 14px;
+      line-height: 1.4;
       text-align: center;
+      pointer-events: auto;
     }
 
     .transcript p {
-      margin: 0 0 8px;
+      margin: 0 0 6px;
     }
 
     .controls {
       z-index: 10;
       position: absolute;
       bottom: calc(10vh + env(safe-area-inset-bottom, 0px));
-      left: 16px;
-      right: 16px;
+      left: 0;
+      right: 0;
       display: flex;
-      flex-wrap: wrap;
       align-items: center;
       justify-content: center;
+      flex-direction: column;
       gap: 10px;
     }
 
@@ -200,7 +212,7 @@ export class GdmLiveAudio extends LitElement {
       outline: none;
       border: 1px solid rgba(255, 255, 255, 0.2);
       color: white;
-      border-radius: 16px;
+      border-radius: 12px;
       background: rgba(255, 255, 255, 0.1);
       min-height: 48px;
       min-width: 48px;
@@ -223,42 +235,39 @@ export class GdmLiveAudio extends LitElement {
       cursor: not-allowed;
     }
 
+    button[data-kind='talk'],
+    button[data-kind='more'] {
+      width: 64px;
+      height: 64px;
+      min-width: 64px;
+      min-height: 64px;
+      padding: 0;
+      margin: 0;
+      border-radius: 12px;
+      font-size: 0;
+    }
+
     button[data-kind='talk'] {
-      min-width: 148px;
-      min-height: 148px;
-      border-radius: 999px;
-      background: #c80000;
-      border-color: transparent;
-      font-weight: 700;
-      font-size: 22px;
-      letter-spacing: 0.02em;
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
     }
 
     button[data-kind='talk'][aria-pressed='true'] {
-      background: #7a0000;
-      transform: scale(0.96);
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      button[data-kind='talk'][aria-pressed='true'] {
-        transform: none;
-      }
+      background: rgba(255, 255, 255, 0.2);
     }
 
     button[data-kind='talk'] .talk-time {
-      display: block;
-      font-size: 13px;
-      font-weight: 500;
-      letter-spacing: 0;
-      opacity: 0.82;
+      display: none;
     }
 
     .more-sheet {
       position: absolute;
       left: 16px;
       right: 16px;
-      bottom: calc(28vh + env(safe-area-inset-bottom, 0px));
+      bottom: calc(10vh + 150px + env(safe-area-inset-bottom, 0px));
       z-index: 12;
+      max-height: min(52vh, 420px);
+      overflow: auto;
       margin: 0 auto;
       max-width: 420px;
       padding: 16px;
@@ -299,14 +308,7 @@ export class GdmLiveAudio extends LitElement {
     }
 
     .privacy {
-      position: absolute;
-      bottom: calc(52px + env(safe-area-inset-bottom, 0px));
-      left: 16px;
-      right: 16px;
-      z-index: 10;
-      text-align: center;
-      color: rgba(255, 255, 255, 0.5);
-      font-size: 12px;
+      display: none;
     }
 
     .key-gate {
@@ -314,23 +316,48 @@ export class GdmLiveAudio extends LitElement {
       inset: 0;
       z-index: 20;
       display: flex;
-      align-items: center;
+      align-items: flex-end;
       justify-content: center;
-      background: rgba(8, 6, 12, 0.78);
-      padding: 24px;
+      background: rgba(8, 6, 12, 0.28);
+      padding: 16px 16px calc(10vh + env(safe-area-inset-bottom, 0px));
+      pointer-events: none;
+    }
+
+    .key-gate ~ .transcript {
+      visibility: hidden;
     }
 
     .key-card {
       position: relative;
+      pointer-events: auto;
       width: min(420px, 100%);
-      max-height: min(92vh, 760px);
+      max-height: min(58vh, 520px);
       overflow-y: auto;
       color: white;
       text-align: center;
-      background: rgba(255, 255, 255, 0.08);
+      background: rgba(16, 12, 20, 0.88);
       border: 1px solid rgba(255, 255, 255, 0.16);
       border-radius: 20px;
-      padding: 24px;
+      padding: 20px 16px 16px;
+    }
+
+    .gate-lede {
+      display: none;
+    }
+
+    @media (min-width: 800px) {
+      .key-gate {
+        align-items: center;
+        padding: 24px;
+      }
+
+      .key-card {
+        max-height: min(70vh, 560px);
+      }
+
+      .gate-lede {
+        display: block;
+      }
     }
 
     .key-card .gate-close {
@@ -404,22 +431,22 @@ export class GdmLiveAudio extends LitElement {
     }
 
     .composer {
-      z-index: 21;
+      z-index: 11;
       position: absolute;
       left: 16px;
       right: 16px;
-      bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+      bottom: calc(10vh + 150px + env(safe-area-inset-bottom, 0px));
       display: flex;
       flex-wrap: wrap;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      max-width: 640px;
+      max-width: 420px;
       margin: 0 auto;
     }
 
-    .composer[data-with-talk='true'] {
-      bottom: calc(10vh + 178px + env(safe-area-inset-bottom, 0px));
+    .composer[data-with-talk='false'] {
+      display: none;
     }
 
     .composer input {
@@ -445,11 +472,18 @@ export class GdmLiveAudio extends LitElement {
     }
 
     .composer-hint {
+      display: none;
       flex: 1 0 100%;
       margin: 0;
       color: rgba(255, 255, 255, 0.55);
       font-size: 12px;
       text-align: center;
+    }
+
+    @media (min-width: 800px) {
+      .composer-hint {
+        display: block;
+      }
     }
 
     .pay-rail {
@@ -1584,7 +1618,7 @@ export class GdmLiveAudio extends LitElement {
                   ${this.authMode === 'unknown'
                     ? html`<p>${strings.opening}</p>`
                     : ''}
-                  <p>${strings.pasteKey}</p>
+                  <p class="gate-lede">${strings.pasteKey}</p>
                   <p>
                     <a
                       href=${strings.getKeyHref}
@@ -1780,9 +1814,12 @@ export class GdmLiveAudio extends LitElement {
               </div>
             `
           : ''}
+        ${this.showKeyGate
+          ? ''
+          : html`
         <form
           class="composer"
-          data-with-talk=${this.showKeyGate ? 'false' : 'true'}
+          data-with-talk="true"
           @submit=${this.onTypedSubmit}>
           <input
             type="text"
@@ -1798,10 +1835,32 @@ export class GdmLiveAudio extends LitElement {
           </button>
           <p class="composer-hint">${this.demoMode ? strings.demoHint : strings.typedHint}</p>
         </form>
+            `}
         ${this.showKeyGate
           ? ''
           : html`
               <div class="controls" role="toolbar" aria-label=${strings.talk}>
+                <button
+                  type="button"
+                  data-kind="more"
+                  aria-expanded=${this.moreOpen}
+                  aria-label=${strings.more}
+                  @click=${() => {
+                    this.moreOpen = !this.moreOpen;
+                    if (!this.moreOpen) {
+                      this.lastFocusedReady = false;
+                    }
+                  }}>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    height="40px"
+                    viewBox="0 -960 960 960"
+                    width="40px"
+                    fill="#ffffff">
+                    <path
+                      d="M480-160q-134 0-227-93t-93-227q0-134 93-227t227-93q69 0 132 28.5T720-690v-110h80v280H520v-80h168q-32-56-87.5-88T480-720q-100 0-170 70t-70 170q0 100 70 170t170 70q77 0 139-44t87-116h84q-28 106-114 173t-196 67Z" />
+                  </svg>
+                </button>
                 <button
                   type="button"
                   data-kind="talk"
@@ -1816,21 +1875,23 @@ export class GdmLiveAudio extends LitElement {
                   @keydown=${this.onTalkKeydown}
                   @keyup=${this.onTalkKeyup}
                   ?disabled=${talkDisabled}>
-                  ${strings.talk}
-                  ${listening ? html`<span class="talk-time">${remaining}</span>` : ''}
-                </button>
-                <button
-                  type="button"
-                  data-kind="more"
-                  aria-expanded=${this.moreOpen}
-                  aria-label=${strings.more}
-                  @click=${() => {
-                    this.moreOpen = !this.moreOpen;
-                    if (!this.moreOpen) {
-                      this.lastFocusedReady = false;
-                    }
-                  }}>
-                  ${strings.more}
+                  ${listening
+                    ? html`<svg
+                        viewBox="0 0 100 100"
+                        width="32px"
+                        height="32px"
+                        fill="#000000"
+                        xmlns="http://www.w3.org/2000/svg">
+                        <rect x="0" y="0" width="100" height="100" rx="15" />
+                      </svg>`
+                    : html`<svg
+                        viewBox="0 0 100 100"
+                        width="32px"
+                        height="32px"
+                        fill="#c80000"
+                        xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="50" cy="50" r="50" />
+                      </svg>`}
                 </button>
               </div>
             `}
