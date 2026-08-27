@@ -49,7 +49,7 @@ import {
   OUTPUT_SAMPLE_RATE,
   buildSystemInstruction,
 } from './src/product/identity';
-import {copy, localizeStatus, talkHint, uiLanguage} from './src/product/copy';
+import {copy, localizeStatus, uiLanguage} from './src/product/copy';
 import {
   DEFAULT_PREFS,
   LIVE_VOICES,
@@ -109,8 +109,8 @@ export class GdmLiveAudio extends LitElement {
   @state() payPlan: PlanId = 'monthly_hosted';
   @state() paying = false;
   @state() payError = '';
-  @state() gateDismissed = false;
-  @state() demoMode = false;
+  @state() gateDismissed = true;
+  @state() demoMode = true;
   @state() inputNode?: GainNode;
   @state() outputNode?: GainNode;
 
@@ -235,8 +235,13 @@ export class GdmLiveAudio extends LitElement {
       cursor: not-allowed;
     }
 
+    .controls button[disabled] {
+      display: none;
+    }
+
     button[data-kind='talk'],
-    button[data-kind='more'] {
+    button[data-kind='more'],
+    button[data-kind='stop'] {
       width: 64px;
       height: 64px;
       min-width: 64px;
@@ -540,6 +545,7 @@ export class GdmLiveAudio extends LitElement {
     window.addEventListener('keydown', this.onWindowKey);
     window.addEventListener('pointerdown', this.onWindowPointer);
     document.addEventListener('visibilitychange', this.onDocumentVisibility);
+    this.applyEvent({type: 'DEMO_OPENED'});
     void this.startAuth();
   }
 
@@ -607,7 +613,6 @@ export class GdmLiveAudio extends LitElement {
         Date.now(),
         uiLanguage(this.prefs, navigator.language),
       );
-      this.persistTranscripts();
     }
     track('demo_opened');
   }
@@ -1706,9 +1711,9 @@ export class GdmLiveAudio extends LitElement {
               </form>
             `
           : ''}
-        <section class="transcript" aria-label="Conversation" aria-live="polite">
-          ${hasTurns
-            ? this.transcript.turns.map(
+        ${hasTurns
+          ? html`<section class="transcript" aria-label="Conversation" aria-live="polite">
+          ${this.transcript.turns.map(
                 (turn) => html`
                   <p>
                     <strong>${turn.side === 'user' ? strings.you : strings.orb}</strong>
@@ -1718,8 +1723,7 @@ export class GdmLiveAudio extends LitElement {
                     ${turn.text}
                   </p>
                 `,
-              )
-            : html`<p class="empty">${talkHint(this.prefs.talkMode, lang)}</p>`}
+              )}
           ${this.transcript.clipped
             ? html`<p class="clip-note">${strings.clipped}</p>`
             : ''}
@@ -1730,7 +1734,8 @@ export class GdmLiveAudio extends LitElement {
                 </button>
               </p>`
             : ''}
-        </section>
+        </section>`
+          : ''}
         ${this.moreOpen
           ? html`
               <div
@@ -1819,28 +1824,6 @@ export class GdmLiveAudio extends LitElement {
         ${this.showKeyGate
           ? ''
           : html`
-        <form
-          class="composer"
-          data-with-talk="true"
-          @submit=${this.onTypedSubmit}>
-          <input
-            type="text"
-            autocomplete="off"
-            enterkeyhint="send"
-            maxlength="500"
-            placeholder=${strings.typeNote}
-            aria-label=${strings.typeNote}
-            .value=${this.typedDraft}
-            @input=${this.onTypedDraftInput} />
-          <button type="submit" ?disabled=${!this.typedDraft.trim()}>
-            ${strings.speak}
-          </button>
-          <p class="composer-hint">${this.demoMode ? strings.demoHint : strings.typedHint}</p>
-        </form>
-            `}
-        ${this.showKeyGate
-          ? ''
-          : html`
               <div class="controls" role="toolbar" aria-label=${strings.talk}>
                 <button
                   type="button"
@@ -1877,23 +1860,30 @@ export class GdmLiveAudio extends LitElement {
                   @keydown=${this.onTalkKeydown}
                   @keyup=${this.onTalkKeyup}
                   ?disabled=${talkDisabled}>
-                  ${listening
-                    ? html`<svg
-                        viewBox="0 0 100 100"
-                        width="32px"
-                        height="32px"
-                        fill="#000000"
-                        xmlns="http://www.w3.org/2000/svg">
-                        <rect x="0" y="0" width="100" height="100" rx="15" />
-                      </svg>`
-                    : html`<svg
-                        viewBox="0 0 100 100"
-                        width="32px"
-                        height="32px"
-                        fill="#c80000"
-                        xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="50" cy="50" r="50" />
-                      </svg>`}
+                  <svg
+                    viewBox="0 0 100 100"
+                    width="32px"
+                    height="32px"
+                    fill="#c80000"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="50" cy="50" r="50" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  data-kind="stop"
+                  aria-label=${strings.talk}
+                  ?disabled=${!listening}
+                  @pointerup=${() => this.stopRecording()}
+                  @click=${() => this.stopRecording()}>
+                  <svg
+                    viewBox="0 0 100 100"
+                    width="32px"
+                    height="32px"
+                    fill="#000000"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <rect x="0" y="0" width="100" height="100" rx="15" />
+                  </svg>
                 </button>
               </div>
             `}
