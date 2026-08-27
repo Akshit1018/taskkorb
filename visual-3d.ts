@@ -132,7 +132,7 @@ export class GdmLiveAudioVisuals3D extends LitElement {
       antialias: false,
     });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setPixelRatio(1);
 
     const geometry = new THREE.IcosahedronGeometry(1, 10);
 
@@ -156,7 +156,7 @@ export class GdmLiveAudioVisuals3D extends LitElement {
 
     const sphere = new THREE.Mesh(geometry, sphereMaterial);
     scene.add(sphere);
-    sphere.visible = false;
+    sphere.visible = true;
     this.sphere = sphere;
     this.renderer = renderer;
 
@@ -169,7 +169,7 @@ export class GdmLiveAudioVisuals3D extends LitElement {
         texture.mapping = THREE.EquirectangularReflectionMapping;
         const exrCubeRenderTarget = pmremGenerator.fromEquirectangular(texture);
         sphereMaterial.envMap = exrCubeRenderTarget.texture;
-        sphere.visible = true;
+        sphereMaterial.needsUpdate = true;
       },
       undefined,
       () => {
@@ -180,9 +180,9 @@ export class GdmLiveAudioVisuals3D extends LitElement {
     const renderPass = new RenderPass(scene, camera);
     const bloomPass = new UnrealBloomPass(
       new THREE.Vector2(window.innerWidth, window.innerHeight),
-      5,
-      0.5,
-      0,
+      1.25,
+      0.4,
+      0.15,
     );
     const composer = new EffectComposer(renderer);
     composer.addPass(renderPass);
