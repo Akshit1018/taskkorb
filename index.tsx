@@ -588,16 +588,8 @@ export class GdmLiveAudio extends LitElement {
     this.demoExchangeIndex += 1;
     this.applyEvent({type: 'LISTEN_START_REQUESTED'});
     this.applyEvent({type: 'LISTEN_STARTED'});
-    this.transcript = appendTurn(this.transcript, {
-      side: 'user',
-      text: pair.user,
-      at: Date.now(),
-    });
-    this.transcript = appendTurn(this.transcript, {
-      side: 'orb',
-      text: pair.orb,
-      at: Date.now() + 1,
-    });
+    this.transcript = appendTurn(this.transcript, 'user', pair.user, Date.now());
+    this.transcript = appendTurn(this.transcript, 'orb', pair.orb, Date.now() + 1);
     this.persistTranscripts();
     this.applyEvent({type: 'AUDIO_OUT'});
     this.speakPrepared(pair.orb, 'orb');
