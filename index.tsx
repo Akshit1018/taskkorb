@@ -331,7 +331,7 @@ export class GdmLiveAudio extends LitElement {
       position: relative;
       pointer-events: auto;
       width: min(420px, 100%);
-      max-height: min(58vh, 520px);
+      max-height: min(40vh, 360px);
       overflow-y: auto;
       color: white;
       text-align: center;
@@ -341,7 +341,8 @@ export class GdmLiveAudio extends LitElement {
       padding: 20px 16px 16px;
     }
 
-    .gate-lede {
+    .gate-lede,
+    .gate-extra {
       display: none;
     }
 
@@ -355,7 +356,8 @@ export class GdmLiveAudio extends LitElement {
         max-height: min(70vh, 560px);
       }
 
-      .gate-lede {
+      .gate-lede,
+      .gate-extra {
         display: block;
       }
     }
@@ -384,14 +386,14 @@ export class GdmLiveAudio extends LitElement {
     }
 
     .key-card h1 {
-      margin: 0 0 8px;
-      font-size: 22px;
+      margin: 0 0 6px;
+      font-size: 20px;
     }
 
     .key-card p {
-      margin: 0 0 16px;
+      margin: 0 0 8px;
       color: rgba(255, 255, 255, 0.72);
-      line-height: 1.4;
+      line-height: 1.35;
     }
 
     .key-card a {
@@ -487,8 +489,8 @@ export class GdmLiveAudio extends LitElement {
     }
 
     .pay-rail {
-      margin-top: 20px;
-      padding-top: 16px;
+      margin-top: 12px;
+      padding-top: 10px;
       border-top: 1px solid rgba(255, 255, 255, 0.16);
       text-align: left;
     }
@@ -1619,7 +1621,7 @@ export class GdmLiveAudio extends LitElement {
                     ? html`<p>${strings.opening}</p>`
                     : ''}
                   <p class="gate-lede">${strings.pasteKey}</p>
-                  <p>
+                  <p class="gate-extra">
                     <a
                       href=${strings.getKeyHref}
                       target="_blank"
@@ -1662,7 +1664,7 @@ export class GdmLiveAudio extends LitElement {
                   </button>
                   <div class="pay-rail">
                     <h2>${strings.payTitle}</h2>
-                    <p>${strings.payHint}</p>
+                    <p class="gate-extra">${strings.payHint}</p>
                     <input
                       type="email"
                       autocomplete="email"
